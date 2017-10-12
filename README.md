@@ -26,7 +26,10 @@ The UI elements are all in place, as is the ansible playbook integration. The ne
 Stay Tuned!
 
 # What does it look like?
-Here's an example run that illustrates the workflow for a small cluster of 3 nodes.
+Here's an example run that illustrates the workflow for a small cluster of 3 nodes.  
+  
+![copilot in action](copilot.gif)
+
 
 # What does it need to run?
 ansible-2.0 -> 2.3 (**not 2.4**)  
