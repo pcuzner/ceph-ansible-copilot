@@ -29,5 +29,5 @@ Stay Tuned!
 Here's an example run that illustrates the workflow for a small cluster of 3 nodes.
 
 # What does it need to run?
-ansible-2.0 -> 2.3 (**not 2.4**)
+ansible-2.0 -> 2.3 (**not 2.4**)  
 ceph-ansible 
