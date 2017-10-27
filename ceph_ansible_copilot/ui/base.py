@@ -31,7 +31,7 @@ class TableRow(urwid.WidgetWrap):
         data_field = self.text[3:].split()
         hostname = data_field[1]
 
-        self.roles = self.app.cfg.hosts[hostname].roles
+        self.roles = self.app.hosts[hostname].roles
         self._mon = True if 'mon' in self.roles else False
         self._rgw = True if 'rgw' in self.roles else False
         self._osd = True if 'osd' in self.roles else False
@@ -53,7 +53,7 @@ class TableRow(urwid.WidgetWrap):
 
     def _set_txt(self):
 
-        hosts = self.app.cfg.hosts
+        hosts = self.app.hosts
 
         data_field = self.get_value()[3:].split()
         hostname = data_field[1]
@@ -99,7 +99,7 @@ class TableRow(urwid.WidgetWrap):
     def render(self, size, focus=False):
 
         app = self.app
-        hosts = app.cfg.hosts
+        hosts = app.hosts
 
         if not focus:
             app.show_message("")

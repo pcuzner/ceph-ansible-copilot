@@ -38,13 +38,13 @@ class UI_Network(UIBaseClass):
         """ subnets shared by ALL hosts """
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
         # get a list of all networks
         all_subnets = set()
         candidate_subnets = []
         for host_name in hosts:
-            all_subnets.update(app.cfg.hosts[host_name].subnets)
+            all_subnets.update(hosts[host_name].subnets)
 
         # process each one
         for net in all_subnets:
@@ -57,7 +57,7 @@ class UI_Network(UIBaseClass):
         """ subnets shared by OSD hosts """
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
         # get a list of all networks
         osd_subnets = set()
@@ -78,7 +78,7 @@ class UI_Network(UIBaseClass):
         # get and set the selected networks based on the radio button settings
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
         public = [btn.get_label() for btn in self.public_grp
                   if btn.state is True]

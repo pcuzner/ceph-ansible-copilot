@@ -60,7 +60,7 @@ class UI_Deploy(UIBaseClass):
 
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
         if not self.deploy_attempted:
             return (

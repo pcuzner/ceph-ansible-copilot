@@ -39,9 +39,9 @@ class UI_Host_Validation(UIBaseClass):
 
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
-        host_list = sorted(self.parent.cfg.hosts.keys())
+        host_list = sorted(hosts.keys())
         app.show_message("Probing hosts...") #, immediate=True)
 
         self.clear_table()
@@ -101,10 +101,10 @@ class UI_Host_Validation(UIBaseClass):
         app = self.parent
 
         table_rows = []
-        for hostname in sorted(app.cfg.hosts.keys()):
+        for hostname in sorted(app.hosts.keys()):
             # establish column field defaults
-            if self.parent.cfg.hosts[hostname]._facts:
-                this_host = self.parent.cfg.hosts[hostname]
+            if app.hosts[hostname]._facts:
+                this_host = app.hosts[hostname]
                 w = urwid.AttrMap(TableRow(this_host.info(), app),
                                   'body',
                                   'reverse')
@@ -119,7 +119,7 @@ class UI_Host_Validation(UIBaseClass):
     def next_page(self, button):
 
         app = self.parent
-        hosts = self.parent.cfg.hosts
+        hosts = self.parent.hosts
         cfg = self.parent.cfg
 
         if self.probed:

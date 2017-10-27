@@ -165,7 +165,7 @@ class UI_Host_Definition(UIBaseClass):
     def validate(self, button):
         app = self.parent
         cfg = app.cfg
-        hosts = cfg.hosts
+        hosts = app.hosts
 
         # all hosts entered must be valid
         if not all(self.valid_hosts[host_type] is True
