@@ -27,7 +27,7 @@ class StripExtension(distutils.command.install_scripts.install_scripts):
 
 setup(
     name="copilot",
-    version="0.8.5",
+    version="0.8.10",
     description="Text based UI to simplify Ceph installation for new users",
     long_description=long_description,
     author="Paul Cuzner",
