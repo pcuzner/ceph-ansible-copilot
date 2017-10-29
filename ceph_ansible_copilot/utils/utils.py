@@ -5,6 +5,8 @@ import socket
 import threading
 import Queue
 import getpass
+import yaml
+from yaml.scanner import ScannerError
 
 from paramiko import SSHClient, AutoAddPolicy
 from paramiko.ssh_exception import (AuthenticationException, SSHException,
@@ -153,3 +155,18 @@ def check_ssh_access(local_user=None, ssh_user='root', host_list=None):
             client.close()
 
     return sorted(ssh_errors)
+
+def valid_yaml(yml_data):
+    """
+    Validate a data stream(list) as acceptable yml
+    :param yml_data: (list) of lines that would represent a yml file
+    :return: (bool) to confirm whether the yaml is ok or not
+    """
+
+    yml_stream = '\n'.join(yml_data)
+    try:
+        _yml_ok = yaml.safe_load(yml_stream)
+    except ScannerError:
+        return False
+    else:
+        return True
