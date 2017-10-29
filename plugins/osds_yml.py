@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import yaml
+from ceph_ansible_copilot.utils import valid_yaml
 
 description = "Create a osds.yml file to control osd creation"
 yml_file = '/usr/share/ceph-ansible/group_vars/osds.yml'
@@ -10,10 +10,10 @@ def plugin_main(config=None):
 
     yml_data = create_yml(config)
 
-    if yml_ok(yml_data):
+    if valid_yaml(yml_data):
         return ('yml', yml_data)
     else:
-        raise SyntaxError("Invalid yml created")
+        raise SyntaxError("Invalid yml created in osds_yml.py plugin")
 
 
 def yml_ok(yml_list):
