@@ -26,6 +26,7 @@ from ceph_ansible_copilot.ui import (UI_Welcome,
 
 
 CEPH_ANSIBLE_ROOT = '/usr/share/ceph-ansible'
+
 __version__ = '0.8'
 
 palette = [
@@ -127,9 +128,19 @@ class App(object):
 
     def __init__(self):
 
-        self.title = urwid.AttrMap(
-                       urwid.Text('ceph-ansible-copilot'),
-                       'title')
+        pgm = '{} v{}'.format(
+                         os.path.splitext(os.path.basename(__file__))[0],
+                         __version__)
+
+        banner = urwid.Columns([
+            urwid.Text(("title", pgm),
+                       align='left'),
+            urwid.Text(("title", "[{}]".format(opts.mode)),
+                       align='right')
+        ])
+
+        self.title = urwid.AttrMap(banner, "title")
+
         self.timestamp = None
         self.file_timestamp = None
         self.log = None
