@@ -43,7 +43,7 @@ Here's an example run that illustrates the workflow for a small cluster of 3 nod
 
 
 ## What does it need to run?
-ansible-2.0 -> 2.3 (**not 2.4**)  
+ansible-2.4 or above  
 python-urwid  
 ceph-ansible 
 
@@ -60,4 +60,12 @@ cd /usr/share/ceph-ansible
 copilot
 ``` 
 NB. You need to cd to the ceph-ansible directory, since the playbook needs to reference ceph-ansibles roles, actions etc  
+
+## What's next?  
+Here's my backlog  
+1. validate cpu/mem against the selected roles
+2. handle collocation requests - ok for dev, not so good for prod  
+3. handle ssh setup instead of relying on the admin. i.e. add a credentials page which gets populated with the hosts that had passwordless login failures, to prompt the admin for passwords to set up the missing ssh keys.  
+4. support iscsi gateways role  
+5. post install config - what about enabling add on pages through plugins for radosgw config for example.  
 
