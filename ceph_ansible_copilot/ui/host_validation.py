@@ -41,7 +41,7 @@ class UI_Host_Validation(UIBaseClass):
         cfg = app.cfg
         hosts = app.hosts
 
-        host_list = sorted(hosts.keys())
+        host_list = ','.join(sorted(hosts.keys()))
         app.show_message("Probing hosts...") #, immediate=True)
 
         self.clear_table()

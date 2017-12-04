@@ -138,7 +138,7 @@ class CoPilotPlayBook(object):
 
         Options = namedtuple('Options',
                              ['connection', 'module_path', 'forks', 'become',
-                              'become_method', 'become_user', 'check',
+                              'become_method', 'become_user', 'check', 'diff',
                               'listtags', 'listtasks', 'listhosts', 'syntax']
                              )
 
@@ -156,12 +156,16 @@ class CoPilotPlayBook(object):
                                become=True,
                                become_method='sudo',
                                become_user='root',
-                               check=False
+                               check=False,
+                               diff=False
                        )
 
         # create inventory and pass to variable manager
         self.inventory = InventoryManager(loader=self.loader,
                                           sources=host_list)
+
+        self.host_list = host_list
+
         self.variable_manager = VariableManager(loader=self.loader,
                                                 inventory=self.inventory)
 
