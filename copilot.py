@@ -11,6 +11,8 @@ import time
 import logging
 import argparse
 
+import ceph_ansible_copilot
+
 from ceph_ansible_copilot.utils import PluginMgr
 
 from ceph_ansible_copilot.ui import (UI_Welcome,
@@ -26,8 +28,6 @@ from ceph_ansible_copilot.ui import (UI_Welcome,
 
 
 CEPH_ANSIBLE_ROOT = '/usr/share/ceph-ansible'
-
-__version__ = '0.8'
 
 palette = [
     ('body', 'black', 'light gray'),
@@ -130,7 +130,7 @@ class App(object):
 
         pgm = '{} v{}'.format(
                          os.path.splitext(os.path.basename(__file__))[0],
-                         __version__)
+                         ceph_ansible_copilot.__version__)
 
         banner = urwid.Columns([
             urwid.Text(("title", pgm),
@@ -355,7 +355,7 @@ class App(object):
         self.log = setup_logging()
         self.log.info("{} (v{}) starting at "
                       "{}".format(os.path.basename(__file__),
-                                  __version__,
+                                  ceph_ansible_copilot.__version__,
                                   self.file_timestamp))
 
         self._setup_dirs()
@@ -548,12 +548,16 @@ def parse_cli_options():
                         default=12, choices=[10, 12],
                         help="ceph version to install")
 
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    parser.add_argument('--version', action='version',
+                        version='{} {}'.format(parser.prog,
+                                               ceph_ansible_copilot.__version__))
 
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
+
+    opts = parse_cli_options()
 
     # check that the cwd is /usr/share/ceph-ansible to pick up the correct
     # environment (cfg, plugins, actions etc)
@@ -562,7 +566,6 @@ if __name__ == "__main__":
               "directory".format(CEPH_ANSIBLE_ROOT))
         sys.exit(4)
 
-    opts = parse_cli_options()
     if opts.playbook:
         if not os.path.exists(opts.playbook):
             print("-> playbook file not found. Is it fully qualified?")

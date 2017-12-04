@@ -5,6 +5,9 @@ import distutils.command.install_scripts
 import shutil
 import os
 
+import ceph_ansible_copilot
+
+
 if os.path.exists('README'):
     with open('README') as readme_file:
         long_description = readme_file.read().strip()
@@ -27,7 +30,7 @@ class StripExtension(distutils.command.install_scripts.install_scripts):
 
 setup(
     name="copilot",
-    version="0.8.10",
+    version=ceph_ansible_copilot.__version__,
     description="Text based UI to simplify Ceph installation for new users",
     long_description=long_description,
     author="Paul Cuzner",
