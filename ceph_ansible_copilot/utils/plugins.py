@@ -78,6 +78,11 @@ class PluginMgr(object):
                 functions.append(e.name)
             if isinstance(e, ast.Assign):
                 for t in e.targets:
-                    var_list[t.id] = e.value.s
+                    attr = getattr(e.value, 's', None)
+                    if attr:
+                        var_list[t.id] = e.value.s
+                    else:
+                        var_list[t.id] = e.value
+
         return {"functions": functions,
                 "vars": var_list}
