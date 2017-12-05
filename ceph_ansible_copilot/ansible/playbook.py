@@ -5,6 +5,7 @@
 
 from collections import namedtuple
 
+from ansible.cli import CLI as cli
 from ansible.parsing.dataloader import DataLoader
 from ansible.vars.manager import VariableManager
 from ansible.inventory.manager import InventoryManager
@@ -168,6 +169,13 @@ class CoPilotPlayBook(object):
 
         self.variable_manager = VariableManager(loader=self.loader,
                                                 inventory=self.inventory)
+
+        # from ansible 2.4 the ansible_version is set in the cli module, and
+        # since we're using the api we need to set it explicitly to make it
+        # available to any playbooks we're asked to run
+        self.variable_manager.extra_vars = {
+            "ansible_version": cli.version_info(gitinfo=False)
+        }
 
         self.callback = callback
         self.pb_file = None
