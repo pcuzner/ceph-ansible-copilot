@@ -13,7 +13,7 @@ import argparse
 
 import ceph_ansible_copilot
 
-from ceph_ansible_copilot.utils import PluginMgr
+from ceph_ansible_copilot.utils import PluginMgr, restore_ansible_cfg
 
 from ceph_ansible_copilot.ui import (UI_Welcome,
                                      UI_Environment,
@@ -575,6 +575,10 @@ if __name__ == "__main__":
     copilot.setup()
     copilot.loop.run()
     copilot.cleanup()
+
+    # if we have a _bak version of the ansible.cfg, restore it to it's
+    # previous state
+    restore_ansible_cfg()
 
     print("--- DEBUG STUFF ---")
     print("Config:")
