@@ -121,7 +121,7 @@ class UI_Deploy(UIBaseClass):
         deploy_pb.setup(pb_file=app.playbook)
         app.log.info("Playbook starting, using {}".format(app.playbook))
         app.show_message("Ceph deployment started "
-                         "({})".format(os.path.basename(app.playbook)),
+                         "(using {})".format(os.path.basename(app.playbook)),
                          immediate=True)
 
         # with CaptureSTDOUT() as pb_stdout:
@@ -132,7 +132,8 @@ class UI_Deploy(UIBaseClass):
 
         if deploy_pb.rc == 0:
             self.button_row.base_widget[1].set_label('Next')
-            app.show_message('Deployment Completed - no errors')
+            app.show_message('Deployment Complete - playbook '
+                             'completed rc={}'.format(deploy_pb.rc))
         else:
             app.show_message('Error: {} problems encountered during '
                              'deployment'.format(self.failed),
@@ -166,6 +167,7 @@ class UI_Deploy(UIBaseClass):
                 # FIXME should add to the table, not recreate each time!
                 host_errors = [self._get_err(e_dict)
                                for e_dict in stats['failures'][host]]
+                host_errors.insert(0, "{}\n".format(stats['task_name']))
                 host_text = ','.join(host_errors)
                 error_rows.append(DataRow(host, host_text))
                 # self.failure_desc_w.base_widget.set_text(','.join(host_errors))
