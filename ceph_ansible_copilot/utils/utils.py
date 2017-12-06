@@ -1,4 +1,6 @@
 
+import shutil
+import ConfigParser
 import os
 import pwd
 import socket
@@ -156,6 +158,7 @@ def check_ssh_access(local_user=None, ssh_user='root', host_list=None):
 
     return sorted(ssh_errors)
 
+
 def valid_yaml(yml_data):
     """
     Validate a data stream(list) as acceptable yml
@@ -170,3 +173,66 @@ def valid_yaml(yml_data):
         return False
     else:
         return True
+
+
+def setup_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
+    """
+    update the ansible.cfg file in the ceph-ansible directory to turn off
+    deprecation warnings. The original file is saved, for restoration after
+    copilot completes
+    :param ceph_ansible_dir : (str) path to the ceph-ansible root directory
+    :return: None
+    """
+
+    ansible_cfg = os.path.join(ceph_ansible_dir, 'ansible.cfg')
+    ansible_cfg_bkup = '{}_bak'.format(ansible_cfg)
+
+    cfg_changes = [
+        ('defaults', 'deprecation_warnings', 'False')
+    ]
+
+    if not os.path.exists(ansible_cfg):
+        raise EnvironmentError("ansible.cfg is not in the ceph-ansible"
+                               "directory - unable to continue")
+
+    cfg_file = ConfigParser.SafeConfigParser()
+    cfg_file.readfp(open(ansible_cfg, 'r'))
+    changes_made = False
+    for setting in cfg_changes:
+        section, variable, required_value = setting
+        try:
+            current_value = cfg_file.get(section, variable)
+            if current_value != required_value:
+                cfg_file.set(section, variable, required_value)
+                changes_made = True
+        except ConfigParser.NoOptionError:
+            cfg_file.set(section, variable, required_value)
+            changes_made = True
+
+    if changes_made:
+        shutil.copy2(ansible_cfg,
+                     ansible_cfg_bkup)
+
+    # use unbuffered I/O to commit the change
+    with open(ansible_cfg, 'w', 0) as c:
+        cfg_file.write(c)
+
+
+def restore_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
+    """
+    if a backup copy exists, restore the ansible.cfg file in the ceph-ansible
+    directory and then remove our backup copy
+    :param ceph_ansible_dir: (str) installation directory of ceph-ansible
+    :return: None
+    """
+
+    ansible_cfg = os.path.join(ceph_ansible_dir, 'ansible.cfg')
+    ansible_cfg_bkup = '{}_bak'.format(ansible_cfg)
+
+    if os.path.exists(ansible_cfg_bkup):
+        shutil.copy2(ansible_cfg_bkup,
+                     ansible_cfg)
+
+        # delete the _bak file
+        os.remove(ansible_cfg_bkup)
+

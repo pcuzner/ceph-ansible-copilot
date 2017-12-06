@@ -11,5 +11,7 @@ from .utils import (bytes2human,
                     check_dns,
                     get_selected_button,
                     check_ssh_access,
-                    valid_yaml
+                    valid_yaml,
+                    setup_ansible_cfg,
+                    restore_ansible_cfg,
                     )
