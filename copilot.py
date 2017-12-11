@@ -7,7 +7,6 @@ import os
 import traceback
 import shutil
 import time
-# import ConfigParser
 import logging
 import argparse
 
@@ -171,25 +170,6 @@ class App(object):
         self.ansible_cfg = os.path.join(CEPH_ANSIBLE_ROOT, 'ansible.cfg')
         self.ansible_cfg_bkup = '{}_bak'.format(self.ansible_cfg)
 
-        # set up the environment variable for ansible
-        # os.environ['ANSIBLE_CONFIG'] = '/usr/share/ceph-ansible'
-
-        # ui_elements = get_ui_sections()
-        # section_names = []
-        # for idx in sorted(ui_elements):
-        #     (page_class, page_title) = ui_elements[idx]
-        #     section_names.append(page_title)
-        #     self.page.append(page_class(self))
-        #
-        # self.left_pane = Breadcrumbs(self, section_names)
-        # self.right_pane = self.page[self.pagenum]
-        # self.msg_text = self.page[self.pagenum].hint
-        #
-        # self.msg = urwid.AttrMap(urwid.Text(self.msg_text), 'message')
-        #
-        # self.refresh_ui(left=self.left_pane,
-        #                 right=self.right_pane.render_page)
-
     def refresh_ui(self, left=None, right=None):
         if not left:
             left = self.left_pane.breadcrumbs
@@ -221,25 +201,12 @@ class App(object):
 
     def execute_plugins(self):
 
-        # self.install_data['hosts'] = hosts
         self.cfg.hosts = self.hosts
-        # self.install_data['ceph_version'] = opts.ceph_version
         self.cfg.ceph_version = opts.ceph_version
-        # self.data['cluster_name'] = opts.cluster_name
         self.cfg.cluster_name = opts.cluster_name
-
-        # for pg in self.page:
-        #     if pg.data:
-        #         pass
-        #         # Add the dict to the main dict
-        #         self.install_data = merge_dicts(self.install_data, pg.data)
 
         self.log.info("Configuration options supplied:")
         self.log.info(self.cfg)
-        # for key in self.install_data:
-
-        #     self.log.info("- {} .. {}".format(key,
-        #                                       self.install_data[key]))
 
         self.log.info("End of options")
 
@@ -252,18 +219,21 @@ class App(object):
         if num_plugins > 0:
             self.log.info("Plugin execution starting..")
 
-        for plugin in self.plugin_mgr.plugins:
-            yml_file = plugin.yml_file
+        srtd_names = sorted(self.plugin_mgr.plugins.keys())
+
+        for plugin_name in srtd_names:
+            mod = self.plugin_mgr.plugins[plugin_name]
+            yml_file = mod.yml_file
 
             try:
-                self.log.info("Plugin: {}".format(plugin.__name__))
-                plugin_data = plugin.plugin_main(self.cfg)
-                # (f_type, contents) = plugin.plugin_main(self.install_data)
+                self.log.info("Plugin: {}".format(plugin_name))
+                plugin_data = mod.plugin_main(self.cfg)
+
             except BaseException as error:
                 # Use BaseException as a catch-all from the plugins
                 plugin_status['failed'] += 1
                 self.log.error("Plugin '{}' failed : "
-                               "{}".format(plugin.__name__,
+                               "{}".format(plugin_name,
                                            sys.exc_info()[0]))
                 self.log.debug(traceback.format_exc())
                 break
@@ -293,13 +263,19 @@ class App(object):
 
     def write_yml(self, yml_file, contents, file_type='yml'):
         self.bkup_yml(yml_file)
-        contents.insert(0, "# created by copilot "
-                           "{}".format(self.file_timestamp))
+        contents.insert(0, ' ')
+        contents.insert(0, "# created by copilot - only overrides from"
+                           " defaults shown {}".format(self.file_timestamp))
         if file_type == 'yml':
             contents.insert(0, '---')
 
-        with open(yml_file, 'w') as f:
+        # unbuffered write
+        with open(yml_file, 'w', 0) as f:
             f.write("\n".join(contents))
+
+        # read it back
+        with open(yml_file, 'r') as f:
+            contents = f.readlines()
 
     def bkup_yml(self, yml_file):
 
@@ -359,13 +335,13 @@ class App(object):
                                   self.file_timestamp))
 
         self._setup_dirs()
-        # self._setup_cfg()
 
         self.plugin_mgr = PluginMgr(logger=self.log)
         self.log.info("{} plugin(s) "
                       "loaded".format(len(self.plugin_mgr.plugins)))
 
-        for mod in self.plugin_mgr.plugins:
+        for plugin_name in self.plugin_mgr.plugins:
+            mod = self.plugin_mgr.plugins[plugin_name]
             self.log.info("- {}".format(mod.__file__[:-1]))     # *.pyc -> *.py
 
         self.init_UI()
@@ -422,10 +398,18 @@ class App(object):
         return
 
     def cleanup(self):
-        pass
 
-        # self.log.info("restoring prior ansible.cfg file")
-        # shutil.copy2(self.ansible_cfg_bkup, self.ansible_cfg)
+        # if we had a site_yml plugin run it again in delete mode
+        # to remove the additional include_vars tasks
+        if 'site_yml' in self.plugin_mgr.plugins:
+            self.log.info("running site_yml again to remove "
+                          "the include_vars task for all.yml")
+            mod = self.plugin_mgr.plugins['site_yml']
+            mod.plugin_main(config=self.cfg, mode='delete')
+
+        # if we have a _bak version of the ansible.cfg, restore it to it's
+        # previous state
+        restore_ansible_cfg()
 
 
 def setup_logging():
@@ -494,10 +478,6 @@ if __name__ == "__main__":
     copilot.setup()
     copilot.loop.run()
     copilot.cleanup()
-
-    # if we have a _bak version of the ansible.cfg, restore it to it's
-    # previous state
-    restore_ansible_cfg()
 
     print("--- DEBUG STUFF ---")
     print("Config:")
