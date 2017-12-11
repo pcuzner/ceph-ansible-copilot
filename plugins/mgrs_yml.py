@@ -10,6 +10,9 @@ yml_file = '/usr/share/ceph-ansible/group_vars/mgrs.yml'
 
 def plugin_main(config=None):
 
+    if not config:
+        raise ValueError("Config object not received from caller")
+
     if not os.path.exists(yml_file):
         # create a copy from the sample file
         sample = '{}.sample'.format(yml_file)

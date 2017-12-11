@@ -3,11 +3,8 @@
 from collections import OrderedDict
 import json
 
-# Requires ansible 2.0->2.3
-
 from ansible.parsing.dataloader import DataLoader
-from ansible.vars import VariableManager
-from ansible.inventory import Inventory
+from ansible.inventory.manager import InventoryManager
 
 
 description = 'Create /etc/ansible/hosts'
@@ -17,7 +14,8 @@ yml_file = '/etc/ansible/hosts'
 def plugin_main(config=None):
 
     if not config:
-        return []
+        raise ValueError("Config object not received from caller")
+
     role_to_group = {
         "mon": "mons",
         "osd": "osds",
@@ -31,13 +29,6 @@ def plugin_main(config=None):
         ("rgws", []),
         ("mdss", [])
     ])
-
-    # groups = {
-    #     "mons": [],
-    #     "osds": [],
-    #     "rgws": [],
-    #     "mdss": []
-    # }
 
     # for host_name in sorted(config['hosts'].keys()):
     #     host_obj = config['hosts'][host_name]
@@ -73,17 +64,15 @@ def format_groups(groups):
 
 def dump_hosts():
 
-    variable_manager = VariableManager()
     loader = DataLoader()
-    inventory = Inventory(
+    inventory = InventoryManager(
         loader=loader,
-        variable_manager=variable_manager,
-        host_list=yml_file
-    )
+        sources=yml_file)
 
     hosts = {}
-    for group in inventory.get_groups():
-        host_list = inventory.get_group(group).hosts
+    groups = inventory.groups
+    for group in groups.keys():
+        host_list = inventory.get_hosts(group)
         hosts[group] = [host.name for host in host_list]
 
     return json.dumps(hosts, indent=4)

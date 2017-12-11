@@ -91,6 +91,7 @@ class UI_Deploy(UIBaseClass):
             )
 
     def deploy(self, button):
+
         app = self.parent
         cfg = app.cfg
 
@@ -121,7 +122,7 @@ class UI_Deploy(UIBaseClass):
         deploy_pb.setup(pb_file=app.playbook)
         app.log.info("Playbook starting, using {}".format(app.playbook))
         app.show_message("Ceph deployment started "
-                         "({})".format(os.path.basename(app.playbook)),
+                         "(using {})".format(os.path.basename(app.playbook)),
                          immediate=True)
 
         # with CaptureSTDOUT() as pb_stdout:
@@ -132,7 +133,8 @@ class UI_Deploy(UIBaseClass):
 
         if deploy_pb.rc == 0:
             self.button_row.base_widget[1].set_label('Next')
-            app.show_message('Deployment Completed - no errors')
+            app.show_message('Deployment Complete - playbook '
+                             'completed rc={}'.format(deploy_pb.rc))
         else:
             app.show_message('Error: {} problems encountered during '
                              'deployment'.format(self.failed),
@@ -142,7 +144,6 @@ class UI_Deploy(UIBaseClass):
     def page_update(self, stats):
         app = self.parent
 
-        # self.data['stats'] = stats
         task_states = stats['task_state']
 
         for key in task_states:
@@ -160,19 +161,16 @@ class UI_Deploy(UIBaseClass):
             if self.failure_title_w.get_text()[0] == '':
 
                 self.failure_title_w.set_text("Failure Details")
-                # first_failure = self.failed_hosts[0]
+
             error_rows = []
             for host in self.failed_hosts:
                 # FIXME should add to the table, not recreate each time!
                 host_errors = [self._get_err(e_dict)
                                for e_dict in stats['failures'][host]]
+                host_errors.insert(0, "{}\n".format(stats['task_name']))
                 host_text = ','.join(host_errors)
                 error_rows.append(DataRow(host, host_text))
-                # self.failure_desc_w.base_widget.set_text(','.join(host_errors))
 
-            # hosts_w = [urwid.AttrMap(SelectableText(host_name),
-            #                          "body", "bkgnd_white")
-            #            for host_name in self.failed_hosts]
             self.failure_list_w = urwid.SimpleListWalker(error_rows)
 
             app.refresh_ui()
@@ -184,11 +182,18 @@ class UI_Deploy(UIBaseClass):
 
         if 'results' in error_dict:
             errors = list()
-            for r in error_dict.get('results'):
-                msg_txt = r.get('msg')
-                if msg_txt:
-                    errors.append(msg_txt)
-            return ','.join(errors)
+            for err in error_dict.get('results'):
+                if not err.get('failed'):
+                    continue
+
+                if 'cmd' in err:
+                    errors.append(' '.join(err.get('cmd')))
+                if 'stderr_lines' in err:
+                    errors.append(err.get('stderr_lines'))
+                if 'msg' in err:
+                    errors.append(err.get('msg'))
+
+            return ' '.join(errors)
         elif 'reason' in error_dict:
             return error_dict.get('reason')
         elif 'msg' in error_dict:

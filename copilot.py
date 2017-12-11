@@ -7,11 +7,12 @@ import os
 import traceback
 import shutil
 import time
-# import ConfigParser
 import logging
 import argparse
 
-from ceph_ansible_copilot.utils import PluginMgr
+import ceph_ansible_copilot
+
+from ceph_ansible_copilot.utils import PluginMgr, restore_ansible_cfg
 
 from ceph_ansible_copilot.ui import (UI_Welcome,
                                      UI_Environment,
@@ -26,7 +27,6 @@ from ceph_ansible_copilot.ui import (UI_Welcome,
 
 
 CEPH_ANSIBLE_ROOT = '/usr/share/ceph-ansible'
-__version__ = '0.8'
 
 palette = [
     ('body', 'black', 'light gray'),
@@ -127,9 +127,19 @@ class App(object):
 
     def __init__(self):
 
-        self.title = urwid.AttrMap(
-                       urwid.Text('ceph-ansible-copilot'),
-                       'title')
+        pgm = '{} v{}'.format(
+                         os.path.splitext(os.path.basename(__file__))[0],
+                         ceph_ansible_copilot.__version__)
+
+        banner = urwid.Columns([
+            urwid.Text(("title", pgm),
+                       align='left'),
+            urwid.Text(("title", "[{}]".format(opts.mode)),
+                       align='right')
+        ])
+
+        self.title = urwid.AttrMap(banner, "title")
+
         self.timestamp = None
         self.file_timestamp = None
         self.log = None
@@ -159,25 +169,6 @@ class App(object):
 
         self.ansible_cfg = os.path.join(CEPH_ANSIBLE_ROOT, 'ansible.cfg')
         self.ansible_cfg_bkup = '{}_bak'.format(self.ansible_cfg)
-
-        # set up the environment variable for ansible
-        # os.environ['ANSIBLE_CONFIG'] = '/usr/share/ceph-ansible'
-
-        # ui_elements = get_ui_sections()
-        # section_names = []
-        # for idx in sorted(ui_elements):
-        #     (page_class, page_title) = ui_elements[idx]
-        #     section_names.append(page_title)
-        #     self.page.append(page_class(self))
-        #
-        # self.left_pane = Breadcrumbs(self, section_names)
-        # self.right_pane = self.page[self.pagenum]
-        # self.msg_text = self.page[self.pagenum].hint
-        #
-        # self.msg = urwid.AttrMap(urwid.Text(self.msg_text), 'message')
-        #
-        # self.refresh_ui(left=self.left_pane,
-        #                 right=self.right_pane.render_page)
 
     def refresh_ui(self, left=None, right=None):
         if not left:
@@ -210,25 +201,12 @@ class App(object):
 
     def execute_plugins(self):
 
-        # self.install_data['hosts'] = hosts
         self.cfg.hosts = self.hosts
-        # self.install_data['ceph_version'] = opts.ceph_version
         self.cfg.ceph_version = opts.ceph_version
-        # self.data['cluster_name'] = opts.cluster_name
         self.cfg.cluster_name = opts.cluster_name
-
-        # for pg in self.page:
-        #     if pg.data:
-        #         pass
-        #         # Add the dict to the main dict
-        #         self.install_data = merge_dicts(self.install_data, pg.data)
 
         self.log.info("Configuration options supplied:")
         self.log.info(self.cfg)
-        # for key in self.install_data:
-
-        #     self.log.info("- {} .. {}".format(key,
-        #                                       self.install_data[key]))
 
         self.log.info("End of options")
 
@@ -241,18 +219,21 @@ class App(object):
         if num_plugins > 0:
             self.log.info("Plugin execution starting..")
 
-        for plugin in self.plugin_mgr.plugins:
-            yml_file = plugin.yml_file
+        srtd_names = sorted(self.plugin_mgr.plugins.keys())
+
+        for plugin_name in srtd_names:
+            mod = self.plugin_mgr.plugins[plugin_name]
+            yml_file = mod.yml_file
 
             try:
-                self.log.info("Plugin: {}".format(plugin.__name__))
-                plugin_data = plugin.plugin_main(self.cfg)
-                # (f_type, contents) = plugin.plugin_main(self.install_data)
+                self.log.info("Plugin: {}".format(plugin_name))
+                plugin_data = mod.plugin_main(self.cfg)
+
             except BaseException as error:
                 # Use BaseException as a catch-all from the plugins
                 plugin_status['failed'] += 1
                 self.log.error("Plugin '{}' failed : "
-                               "{}".format(plugin.__name__,
+                               "{}".format(plugin_name,
                                            sys.exc_info()[0]))
                 self.log.debug(traceback.format_exc())
                 break
@@ -282,13 +263,19 @@ class App(object):
 
     def write_yml(self, yml_file, contents, file_type='yml'):
         self.bkup_yml(yml_file)
-        contents.insert(0, "# created by copilot "
-                           "{}".format(self.file_timestamp))
+        contents.insert(0, ' ')
+        contents.insert(0, "# created by copilot - only overrides from"
+                           " defaults shown {}".format(self.file_timestamp))
         if file_type == 'yml':
             contents.insert(0, '---')
 
-        with open(yml_file, 'w') as f:
+        # unbuffered write
+        with open(yml_file, 'w', 0) as f:
             f.write("\n".join(contents))
+
+        # read it back
+        with open(yml_file, 'r') as f:
+            contents = f.readlines()
 
     def bkup_yml(self, yml_file):
 
@@ -344,17 +331,17 @@ class App(object):
         self.log = setup_logging()
         self.log.info("{} (v{}) starting at "
                       "{}".format(os.path.basename(__file__),
-                                  __version__,
+                                  ceph_ansible_copilot.__version__,
                                   self.file_timestamp))
 
         self._setup_dirs()
-        # self._setup_cfg()
 
         self.plugin_mgr = PluginMgr(logger=self.log)
         self.log.info("{} plugin(s) "
                       "loaded".format(len(self.plugin_mgr.plugins)))
 
-        for mod in self.plugin_mgr.plugins:
+        for plugin_name in self.plugin_mgr.plugins:
+            mod = self.plugin_mgr.plugins[plugin_name]
             self.log.info("- {}".format(mod.__file__[:-1]))     # *.pyc -> *.py
 
         self.init_UI()
@@ -382,87 +369,6 @@ class App(object):
             else:
                 raise EnvironmentError("ceph-ansible group_vars not found. Is "
                                        "ceph-ansible installed?")
-
-    # def _setup_cfg(self):
-    #     """
-    #
-    #     We have to watch for deprecation warnings being emitted which mess up
-    #     the UI. Some deprecation warnings occur prior to the run handlers
-    #     being loaded, so the most reliable way is to simply turn off these
-    #     types of warnings
-    #
-    #     :return:
-    #     """
-    #
-    #     # list of changes to make to the cfg file (section, key, value) fmt
-    #     cfg_changes = [
-    #         ('defaults', 'deprecation_warnings', 'False'),
-    #         # ('defaults', 'stdout_callback', 'skipwarnings')
-    #     ]
-    #     # cfg_changes = []
-    #
-    #     # ceph_ansible_cfg = '/usr/share/ceph-ansible/ansible.cfg'
-    #     # copilot_ansible_cfg = os.path.join(os.path.expanduser('~'),
-    #     #                                    'copilot-ansible.cfg')
-    #     #
-    #     if not os.path.exists(self.ansible_cfg):
-    #         raise EnvironmentError("ansible.cfg is not in the ceph-ansible"
-    #                                "directory - unable to continue")
-    #
-    #     shutil.copy2(self.ansible_cfg,
-    #                  self.ansible_cfg_bkup)
-    #
-    #     self.log.info("Existing ansible.cfg backed up to "
-    #                   "{}".format(self.ansible_cfg_bkup))
-    #
-    #     #
-    #     # if os.path.exists(copilot_ansible_cfg):
-    #     #     os.remove(copilot_ansible_cfg)
-    #     #     self.log.info("Deleted old copilot ansible config file")
-    #     #
-    #     # Read in the cfg file and update it
-    #     cfg_file = ConfigParser.SafeConfigParser()
-    #     cfg_file.readfp(open(self.ansible_cfg, 'r'))
-    #
-    #     for setting in cfg_changes:
-    #         section, variable, value = setting
-    #         cfg_file.set(section, variable, value)
-    #
-    #     # cfg_file.set('defaults', 'roles_path',
-    #     #              '/usr/share/ceph-ansible/roles')
-    #     # cfg_file.set('defaults', 'action_plugins',
-    #     #              '/usr/share/ceph-ansible/plugins/actions')
-    #     # cfg_file.set('defaults', 'library',
-    #     #              '/usr/share/ansible:/usr/share/ceph-ansible')
-    #     #
-    #
-    #     # use unbuffered I/O to commit the change
-    #     # with open(self.ansible_cfg, 'w', 0) as c:
-    #     #     cfg_file.write(c)
-    #     c = open(self.ansible_cfg, 'w', 0)
-    #     cfg_file.write(c)
-    #     c.flush()
-    #     # os.fsync(c)
-    #     c.close()
-    #
-    #     # from ansible import constants as C
-    #
-    #     # p = ConfigParser.ConfigParser()
-    #     # p.read(self.ansible_cfg)
-    #
-    #     # with open(self.ansible_cfg, 'r') as c:
-    #     #     cfg_data = c.readlines()
-    #     #
-    #     # for l in cfg_data:
-    #     #     self.log.info(l.rstrip())
-    #
-    #     # self.log.info("ansible config file created "
-    #     #               "({})".format(copilot_ansible_cfg))
-    #     #
-    #     # os.environ['ANSIBLE_CONFIG'] = self.ansible_cfg
-    #
-    #     self.log.info("ansible.cfg updated - {} "
-    #                   "change(s)".format(len(cfg_changes)))
 
     def check_keys(self):
         keys_dir = os.path.join(os.path.expanduser('~'), 'ceph-ansible-keys')
@@ -492,10 +398,18 @@ class App(object):
         return
 
     def cleanup(self):
-        pass
 
-        # self.log.info("restoring prior ansible.cfg file")
-        # shutil.copy2(self.ansible_cfg_bkup, self.ansible_cfg)
+        # if we had a site_yml plugin run it again in delete mode
+        # to remove the additional include_vars tasks
+        if 'site_yml' in self.plugin_mgr.plugins:
+            self.log.info("running site_yml again to remove "
+                          "the include_vars task for all.yml")
+            mod = self.plugin_mgr.plugins['site_yml']
+            mod.plugin_main(config=self.cfg, mode='delete')
+
+        # if we have a _bak version of the ansible.cfg, restore it to it's
+        # previous state
+        restore_ansible_cfg()
 
 
 def setup_logging():
@@ -537,12 +451,16 @@ def parse_cli_options():
                         default=12, choices=[10, 12],
                         help="ceph version to install")
 
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    parser.add_argument('--version', action='version',
+                        version='{} {}'.format(parser.prog,
+                                               ceph_ansible_copilot.__version__))
 
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
+
+    opts = parse_cli_options()
 
     # check that the cwd is /usr/share/ceph-ansible to pick up the correct
     # environment (cfg, plugins, actions etc)
@@ -551,7 +469,6 @@ if __name__ == "__main__":
               "directory".format(CEPH_ANSIBLE_ROOT))
         sys.exit(4)
 
-    opts = parse_cli_options()
     if opts.playbook:
         if not os.path.exists(opts.playbook):
             print("-> playbook file not found. Is it fully qualified?")

@@ -3,6 +3,7 @@
 import os
 import platform
 
+from ceph_ansible_copilot.utils import valid_yaml
 
 description = "define the base variables"
 yml_file = '/usr/share/ceph-ansible/group_vars/all.yml'
@@ -10,9 +11,12 @@ yml_file = '/usr/share/ceph-ansible/group_vars/all.yml'
 
 def plugin_main(config=None):
 
+    if not config:
+        raise ValueError("Config object not received from caller")
+
     yml = create_yml(config)
 
-    if yml_ok(yml):
+    if valid_yaml(yml):
         return ('yml', yml)
     else:
         raise SyntaxError("Invalid yml generated for {}".format(yml_file))
@@ -97,6 +101,7 @@ def create_yml(config):
                                  config.hosts,
                                  config.public_network)
         out.append('radosgw_interface: {}'.format(rgw_nic))
+        out.append(' ')
 
     return out
 
@@ -133,14 +138,6 @@ def get_common_nic(role, host_data, public_network):
                                "{}".format(role_txt, role_txt))
 
     return list(nics_on_public)[0]
-
-
-def yml_ok(yml_data):
-    # dummy function - insert yml validation here!
-    yml = list(yml_data)
-    yml.insert(0, '---')
-
-    return True
 
 
 if __name__ == '__main__':

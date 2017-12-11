@@ -1,13 +1,16 @@
 
 
-# Embedding Ansible through python API - requires 2.0-2.3 of Ansible - I need
-# to figure out the Inventory handling in 2.4! It's all changed...
-# thanks Ansible!
+# Embedding Ansible through python API - requires ansible 2.4 or above
+# ref: http://docs.ansible.com/ansible/latest/dev_guide/developing_api.html
+
+import logging
+
 from collections import namedtuple
 
+from ansible.cli import CLI as cli
 from ansible.parsing.dataloader import DataLoader
-from ansible.vars import VariableManager
-from ansible.inventory import Inventory
+from ansible.vars.manager import VariableManager
+from ansible.inventory.manager import InventoryManager
 from ansible.playbook.play import Play
 from ansible.executor.task_queue_manager import TaskQueueManager
 from ansible.executor.playbook_executor import PlaybookExecutor
@@ -17,7 +20,6 @@ from ansible.plugins.callback import CallbackBase
 class ResultCallback(CallbackBase):
     """ Callback plugin to act on results as they are emitted """
 
-
     CALLBACK_VERSION = 2.0
     CALLBACK_TYPE = 'stdout'
     CALLBACK_NAME = 'pb_results'
@@ -25,9 +27,6 @@ class ResultCallback(CallbackBase):
     def __init__(self, pb_callout=None, logger=None):
 
         self.logger = logger
-        # self.host_ok = {}
-        # self.host_failed = {}
-        # self.host_unreachable = {}
 
         self.stats = {'task_state': {
                                      'success': 0,
@@ -89,10 +88,6 @@ class ResultCallback(CallbackBase):
     def v2_runner_on_failed(self, result, **kwargs):
         # receive TaskResult object
 
-        # h = getattr(result, '_host', None)
-        # if not h:
-        #     return
-
         host = result._host.name
 
         self._handle_warnings(result._result)
@@ -112,8 +107,6 @@ class ResultCallback(CallbackBase):
     def v2_runner_on_unreachable(self, result, **kwargs):
         host = result._host.name
 
-        # if self.logger:
-        #     self._log_msg(result, msg_type='error')
         self._handle_warnings(result._result)
         self.stats['task_state']['unreachable'] += 1
         if self.pb_callout:
@@ -122,8 +115,6 @@ class ResultCallback(CallbackBase):
     def v2_runner_on_skipped(self, result, **kwargs):
         host = result._host.name
         self._handle_warnings(result._result)
-        # if self.logger:
-        #     self._log_msg(result)
 
         self.stats['task_state']['skipped'] += 1
         if self.pb_callout:
@@ -146,13 +137,15 @@ class CoPilotPlayBook(object):
 
         Options = namedtuple('Options',
                              ['connection', 'module_path', 'forks', 'become',
-                              'become_method', 'become_user', 'check',
+                              'become_method', 'become_user', 'check', 'diff',
                               'listtags', 'listtasks', 'listhosts', 'syntax']
                              )
 
+        self.logger = logging.getLogger('copilot')
+
         # initialize needed objects
-        self.variable_manager = VariableManager()
         self.loader = DataLoader()
+
         self.options = Options(
                                syntax=False,
                                listtags=False,
@@ -164,14 +157,26 @@ class CoPilotPlayBook(object):
                                become=True,
                                become_method='sudo',
                                become_user='root',
-                               check=False
+                               check=False,
+                               diff=False
                        )
 
         # create inventory and pass to variable manager
-        self.inventory = Inventory(loader=self.loader,
-                                   variable_manager=self.variable_manager,
-                                   host_list=host_list)
-        self.variable_manager.set_inventory(self.inventory)
+        self.inventory = InventoryManager(loader=self.loader,
+                                          sources=host_list)
+
+        self.host_list = host_list
+
+        self.variable_manager = VariableManager(loader=self.loader,
+                                                inventory=self.inventory)
+
+        # from ansible 2.4 the ansible_version is set in the cli module, and
+        # since we're using the api we need to set it explicitly to make it
+        # available to any playbooks we're asked to run
+        self.variable_manager.extra_vars = {
+            "ansible_version": cli.version_info(gitinfo=False)
+        }
+
         self.callback = callback
         self.pb_file = None
         self.playbook = None
@@ -228,8 +233,8 @@ class DynamicPlaybook(CoPilotPlayBook):
 class StaticPlaybook(CoPilotPlayBook):
 
     def setup(self, pb_file):
+
         self.pb_file = pb_file
-        # self.variable_manager.extra_vars = {'hosts': 'all'}
         self.playbook = PlaybookExecutor(playbooks=[self.pb_file],
                                          inventory=self.inventory,
                                          variable_manager=self.variable_manager,
@@ -241,8 +246,5 @@ class StaticPlaybook(CoPilotPlayBook):
 
         self.playbook._tqm._stdout_callback = self.callback
 
-        # try:
         self.rc = self.playbook.run()
-        # except ansible.errors.AnsibleFileNotFound:
-        #     print self.pb_file
-        #     raise
+

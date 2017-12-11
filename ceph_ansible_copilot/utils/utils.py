@@ -1,10 +1,14 @@
 
+import shutil
+import ConfigParser
 import os
 import pwd
 import socket
 import threading
 import Queue
 import getpass
+import yaml
+from yaml.scanner import ScannerError
 
 from paramiko import SSHClient, AutoAddPolicy
 from paramiko.ssh_exception import (AuthenticationException, SSHException,
@@ -153,3 +157,135 @@ def check_ssh_access(local_user=None, ssh_user='root', host_list=None):
             client.close()
 
     return sorted(ssh_errors)
+
+
+def valid_yaml(yml_data):
+    """
+    Validate a data stream(list) as acceptable yml
+    :param yml_data: (list) of lines that would represent a yml file
+    :return: (bool) to confirm whether the yaml is ok or not
+    """
+
+    yml_stream = '\n'.join(yml_data)
+    try:
+        _yml_ok = yaml.safe_load(yml_stream)
+    except ScannerError:
+        return False
+    else:
+        return True
+
+
+def setup_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
+    """
+    update the ansible.cfg file in the ceph-ansible directory to turn off
+    deprecation warnings. The original file is saved, for restoration after
+    copilot completes
+    :param ceph_ansible_dir : (str) path to the ceph-ansible root directory
+    :return: None
+    """
+
+    ansible_cfg = os.path.join(ceph_ansible_dir, 'ansible.cfg')
+    ansible_cfg_bkup = '{}_bak'.format(ansible_cfg)
+
+    cfg_changes = [
+        ('defaults', 'deprecation_warnings', 'False')
+    ]
+
+    if not os.path.exists(ansible_cfg):
+        raise EnvironmentError("ansible.cfg is not in the ceph-ansible"
+                               "directory - unable to continue")
+
+    cfg_file = ConfigParser.SafeConfigParser()
+    cfg_file.readfp(open(ansible_cfg, 'r'))
+    changes_made = False
+    for setting in cfg_changes:
+        section, variable, required_value = setting
+        try:
+            current_value = cfg_file.get(section, variable)
+            if current_value != required_value:
+                cfg_file.set(section, variable, required_value)
+                changes_made = True
+        except ConfigParser.NoOptionError:
+            cfg_file.set(section, variable, required_value)
+            changes_made = True
+
+    if changes_made:
+        shutil.copy2(ansible_cfg,
+                     ansible_cfg_bkup)
+
+    # use unbuffered I/O to commit the change
+    with open(ansible_cfg, 'w', 0) as c:
+        cfg_file.write(c)
+
+
+def restore_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
+    """
+    if a backup copy exists, restore the ansible.cfg file in the ceph-ansible
+    directory and then remove our backup copy
+    :param ceph_ansible_dir: (str) installation directory of ceph-ansible
+    :return: None
+    """
+
+    ansible_cfg = os.path.join(ceph_ansible_dir, 'ansible.cfg')
+    ansible_cfg_bkup = '{}_bak'.format(ansible_cfg)
+
+    if os.path.exists(ansible_cfg_bkup):
+        shutil.copy2(ansible_cfg_bkup,
+                     ansible_cfg)
+
+        # delete the _bak file
+        os.remove(ansible_cfg_bkup)
+
+
+def get_used_roles(config):
+    """
+    Process the config object's hosts to provide a consolidated list of
+    roles that the hosts are defined to use
+    :param config: (object) config object containing host objects
+    :return: (list) consolidated list of roles from hosts selected for
+    installation
+    """
+
+    used_roles = set([])
+
+    for host_name in config.hosts.keys():
+        host_obj = config.hosts[host_name]
+        if not host_obj.selected:
+            continue
+
+        host_roles = set(host_obj.roles)
+        used_roles |= host_roles
+
+    # mgr roles are aligned to the mon role, so if there is a mon defined we
+    # automatically enable it to be a mgr too
+    if 'mon' in used_roles:
+        used_roles.add('mgr')
+
+    return list(used_roles)
+
+def get_pgnum(config):
+    """
+    simplistic pgnum calculation based on
+    http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+    :param config: (config object) contains a hosts dict, with all gathered
+                   specs
+    :return: (int) pg number to use for a pool
+    """
+
+    hdd_total = 0
+    ssd_total = 0
+    for host_name in config.hosts:
+        host = config.hosts[host_name]
+        if host.selected:
+            hdd_total += host.hdd_count
+            ssd_total += host.ssd_count
+
+    total_drives = max(hdd_total, ssd_total)
+    if total_drives < 5:
+        return 64
+    elif total_drives < 10:
+        return 128
+    elif total_drives < 50:
+        return 512
+    else:
+        return 1024

@@ -19,10 +19,10 @@ class PluginMgr(object):
         if os.path.exists(self.plugin_dir):
             self.plugins = self.load_plugins()
         else:
-            self.plugins = []
+            self.plugins = {}
 
     def load_plugins(self):
-        plugins = []
+        plugins = {}
         self.logger.info("Plugins to be loaded from {}".format(self.plugin_dir))
         candidate_modules = glob.glob('{}/*.py'.format(self.plugin_dir))
 
@@ -35,7 +35,7 @@ class PluginMgr(object):
 
                 # load the plugin
                 mod = self._load_plugin(full_path)
-                plugins.append(mod)
+                plugins[mod.__name__] = mod
             else:
                 self.logger.warning("{} signature invalid, skipped")
                 self.logger.warning(json.dumps(signature))
@@ -78,6 +78,11 @@ class PluginMgr(object):
                 functions.append(e.name)
             if isinstance(e, ast.Assign):
                 for t in e.targets:
-                    var_list[t.id] = e.value.s
+                    attr = getattr(e.value, 's', None)
+                    if attr:
+                        var_list[t.id] = e.value.s
+                    else:
+                        var_list[t.id] = e.value
+
         return {"functions": functions,
                 "vars": var_list}

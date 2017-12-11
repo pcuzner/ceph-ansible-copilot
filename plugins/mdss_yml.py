@@ -2,13 +2,20 @@
 
 import os
 import shutil
-
+from ceph_ansible_copilot.utils import get_used_roles
 
 description = "use the existing mdss.yml, or create one from the sample"
 yml_file = '/usr/share/ceph-ansible/group_vars/mdss.yml'
 
 
 def plugin_main(config=None):
+
+    if not config:
+        raise ValueError("Config object not received from caller")
+
+    used_roles = get_used_roles(config)
+    if "mds" not in used_roles:
+        return None
 
     if not os.path.exists(yml_file):
         # create a copy from the sample file
