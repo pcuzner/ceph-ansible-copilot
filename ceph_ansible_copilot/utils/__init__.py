@@ -14,4 +14,6 @@ from .utils import (bytes2human,
                     valid_yaml,
                     setup_ansible_cfg,
                     restore_ansible_cfg,
+                    get_used_roles,
+                    get_pgnum
                     )
