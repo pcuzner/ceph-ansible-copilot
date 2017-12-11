@@ -11,6 +11,9 @@ yml_file = '/usr/share/ceph-ansible/group_vars/all.yml'
 
 def plugin_main(config=None):
 
+    if not config:
+        raise ValueError("Config object not received from caller")
+
     yml = create_yml(config)
 
     if valid_yaml(yml):
@@ -98,6 +101,7 @@ def create_yml(config):
                                  config.hosts,
                                  config.public_network)
         out.append('radosgw_interface: {}'.format(rgw_nic))
+        out.append(' ')
 
     return out
 
