@@ -3,6 +3,8 @@
 # Embedding Ansible through python API - requires ansible 2.4 or above
 # ref: http://docs.ansible.com/ansible/latest/dev_guide/developing_api.html
 
+import logging
+
 from collections import namedtuple
 
 from ansible.cli import CLI as cli
@@ -18,7 +20,6 @@ from ansible.plugins.callback import CallbackBase
 class ResultCallback(CallbackBase):
     """ Callback plugin to act on results as they are emitted """
 
-
     CALLBACK_VERSION = 2.0
     CALLBACK_TYPE = 'stdout'
     CALLBACK_NAME = 'pb_results'
@@ -26,9 +27,6 @@ class ResultCallback(CallbackBase):
     def __init__(self, pb_callout=None, logger=None):
 
         self.logger = logger
-        # self.host_ok = {}
-        # self.host_failed = {}
-        # self.host_unreachable = {}
 
         self.stats = {'task_state': {
                                      'success': 0,
@@ -143,6 +141,8 @@ class CoPilotPlayBook(object):
                               'listtags', 'listtasks', 'listhosts', 'syntax']
                              )
 
+        self.logger = logging.getLogger('copilot')
+
         # initialize needed objects
         self.loader = DataLoader()
 
@@ -233,6 +233,7 @@ class DynamicPlaybook(CoPilotPlayBook):
 class StaticPlaybook(CoPilotPlayBook):
 
     def setup(self, pb_file):
+
         self.pb_file = pb_file
         self.playbook = PlaybookExecutor(playbooks=[self.pb_file],
                                          inventory=self.inventory,
