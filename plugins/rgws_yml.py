@@ -2,13 +2,20 @@
 
 import os
 import shutil
-
+from ceph_ansible_copilot.utils import get_used_roles
 
 description = "use the existing rgws.yml, or create one from the sample"
 yml_file = '/usr/share/ceph-ansible/group_vars/rgws.yml'
 
 
 def plugin_main(config=None):
+
+    if not config:
+        raise ValueError("Config object not received from caller")
+
+    used_roles = get_used_roles(config)
+    if "rgw" not in used_roles:
+        return None
 
     if not os.path.exists(yml_file):
         # create a copy from the sample file
