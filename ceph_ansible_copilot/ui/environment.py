@@ -68,12 +68,10 @@ class UI_Environment(UIBaseClass):
         if not user_exists(ansible_user):
             app.show_message("Error: User '{}' does not "
                              "exist".format(ansible_user))
+            return
 
         # then set the data dict to contain the relevant information from this
         # page
-
-        # self.data['cluster_name'] = self.cluster_name.get_edit_text()
-        # cfg.settings.cluster_name = self.cluster_name.get_edit_text()
 
         # self.data['deployment_user'] = ansible_user
         cfg.deployment_user = ansible_user
