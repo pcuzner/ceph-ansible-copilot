@@ -2,7 +2,9 @@
 
 import os
 import yaml
-import collections
+from collections import OrderedDict
+
+from ceph_ansible_copilot.utils import get_used_roles
 
 description = "use the existing site.yml, or create one from the sample"
 yml_file = '/usr/share/ceph-ansible/site.yml'
@@ -10,26 +12,39 @@ yml_file = '/usr/share/ceph-ansible/site.yml'
 # The sample file includes a host entry for each role, but if the role isn't
 # supported by copilot, the playbook generates warning messages that disrupt
 # the UI. To address this, roles that are NOT supported by copilot, are
-# deleted from the generated site.yml file.
+# deleted from the generated site.yml file. Also, the all.yml vars file is
+# not found by default in Ansible 2.4 (2.3 is fine), so this plugin also
+# adds a task to use include_vars to ensure all.yml is included in the play.
 
 
-# Setup Ordered dicts for the internal representation of the yaml. Without this
-# the yaml created for site.yml doesn't look like the original sample
-_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
+def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+
+    class OrderedLoader(Loader):
+        pass
+
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+    return yaml.load(stream, OrderedLoader)
 
 
-def dict_representer(dumper, data):
-    return dumper.represent_dict(data.iteritems())
+def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
+
+    class OrderedDumper(Dumper):
+        pass
+
+    def _dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            data.items())
+    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
-def dict_constructor(loader, node):
-    return collections.OrderedDict(loader.construct_pairs(node))
-
-yaml.add_representer(collections.OrderedDict, dict_representer)
-yaml.add_constructor(_mapping_tag, dict_constructor)
-
-
-def plugin_main(config=None):
+def plugin_main(config=None, mode='add'):
 
     if not config:
         raise ValueError("Config object not received from caller")
@@ -38,56 +53,74 @@ def plugin_main(config=None):
         # create a copy from the sample file
         sample = '{}.sample'.format(yml_file)
         if os.path.exists(sample):
-            # shutil.copy2(sample, yml_file)
-            used_roles = get_used_roles(config)
-            updated_yaml = process_yaml(sample, used_roles)
+
+            if isinstance(config, list):
+                used_roles = config
+            else:
+                used_roles = get_used_roles(config)
+
+            yml_data = load_yaml(sample)
+
+            updated_yaml = process_yaml(yml_data, used_roles)
+            updated_yaml = manage_all_yml(updated_yaml, mode=mode)
+
             write_yaml(yml_file, updated_yaml)
         else:
             raise EnvironmentError("sample file for site.yml not found")
+    else:
+        # site.yml already exists, so we just make sure the include for
+        # all.yml is not there
+        yaml_data = load_yaml(yml_file)
+        updated_yaml_data = manage_all_yml(yaml_data, mode=mode)
+        if updated_yaml_data:
+            write_yaml(yml_file, updated_yaml_data)
 
     return None
 
 
-def get_used_roles(config):
+def manage_all_yml(yaml_data, mode):
+
+    all_vars_file = '/usr/share/ceph-ansible/group_vars/all.yml'
+    pre_req_tasks = yaml_data[0]['tasks']
+
+    if mode == 'add':
+        all_vars = OrderedDict([('name', 'Add all.yml'),
+                               ('include_vars',
+                                OrderedDict([('file',
+                                              all_vars_file)]))])
+        pre_req_tasks.append(all_vars)
+        return yaml_data
+    elif mode == 'delete':
+        p = [item for item in pre_req_tasks if item['name'] != 'Add all.yml']
+        yaml_data[0]['tasks'] = p
+        if len(yaml_data[0]['tasks']) == len(pre_req_tasks):
+            return None
+        else:
+            return yaml_data
+    else:
+        raise ValueError("manage_all_yml passed invalid mode")
+
+
+def load_yaml(yml_filename):
+    with open(yml_filename, "r") as stream:
+        yaml_data = ordered_load(stream, yaml.SafeLoader)
+
+    return yaml_data
+
+
+def process_yaml(yaml_data, used_roles):
     """
-    Process the config object's hosts to provide a consolidated list of
-    roles that the hosts are defined to use
-    :param config: (object) config object containing host objects
-    :return: (list) consolidated list of roles from hosts selected for
-    installation
-    """
-
-    used_roles = set([])
-
-    for host_name in config.hosts.keys():
-        host_obj = config.hosts[host_name]
-        if not host_obj.selected:
-            continue
-
-        host_roles = set(host_obj.roles)
-        used_roles |= host_roles
-
-    # mgr roles are aligned to the mon role, so if there is a mon defined we
-    # automatically enable it to be a mgr too
-    if 'mon' in used_roles:
-        used_roles.add('mgr')
-
-    return list(used_roles)
-
-
-def process_yaml(sample_file, used_roles):
-    """
-    Update the site.yml file, deleting any role that is not used
-    by copilot (i.e. doesn't match an item in the used_roles parameter)
-    :param sample_file: (str) filename of the source yml file
+    Read the site.yml.sample deleting any role that is not used by copilot
+    (i.e. doesn't match an item in the used_roles parameter), and explicitly
+    include the all.yml global_vars file
+    :param yaml_data: (list) load yamldata
     :param used_roles: (list) list of role names (mon, rgw, osd)
-    :return: yaml data to write to the site.yml file
+    :return: edited yaml data to write to the site.yml file
     """
 
-    with open(sample_file, "r") as stream:
-        yaml_data = yaml.load(stream)
-
-    roles = ["{}s".format(role) for role in used_roles]
+    supported_roles = ["{}s".format(role) for role in used_roles]
+    if 'mons' in supported_roles:
+        supported_roles.append('mgrs')
 
     for item in yaml_data:
         if 'hosts' not in item:
@@ -98,26 +131,28 @@ def process_yaml(sample_file, used_roles):
         hosts = item['hosts']
         if isinstance(hosts, str):
             # single role
-            if hosts in roles:
+            if hosts in supported_roles:
                 continue
             # this role is not defined by copilot, so drop the entry
-            item = 'DELETED'
+            item['deleteme'] = True
 
         else:
             # multiple roles
-            item['hosts'] = [role for role in hosts if role in roles]
+            item['hosts'] = [role for role in hosts if role in supported_roles]
 
-    return [item for item in yaml_data if item != "DELETED"]
+    return [item for item in yaml_data if not item.get('deleteme')]
 
 
 def write_yaml(yaml_file, yaml_data):
 
-    with open(yaml_file, "w") as out:
-        yaml.dump(yaml_data,
-                  stream=out,
-                  default_flow_style=False,
-                  explicit_start=True)
+    with open(yaml_file, "w", 0) as out:
+        ordered_dump(yaml_data,
+                     Dumper=yaml.SafeDumper,
+                     stream=out,
+                     default_flow_style=False,
+                     explicit_start=True)
 
 
 if __name__ == '__main__':
-    pass
+    plugin_main(config=['mon', 'osd', 'rgw', 'mds'])
+
