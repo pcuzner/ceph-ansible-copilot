@@ -236,3 +236,56 @@ def restore_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
         # delete the _bak file
         os.remove(ansible_cfg_bkup)
 
+
+def get_used_roles(config):
+    """
+    Process the config object's hosts to provide a consolidated list of
+    roles that the hosts are defined to use
+    :param config: (object) config object containing host objects
+    :return: (list) consolidated list of roles from hosts selected for
+    installation
+    """
+
+    used_roles = set([])
+
+    for host_name in config.hosts.keys():
+        host_obj = config.hosts[host_name]
+        if not host_obj.selected:
+            continue
+
+        host_roles = set(host_obj.roles)
+        used_roles |= host_roles
+
+    # mgr roles are aligned to the mon role, so if there is a mon defined we
+    # automatically enable it to be a mgr too
+    if 'mon' in used_roles:
+        used_roles.add('mgr')
+
+    return list(used_roles)
+
+def get_pgnum(config):
+    """
+    simplistic pgnum calculation based on
+    http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+    :param config: (config object) contains a hosts dict, with all gathered
+                   specs
+    :return: (int) pg number to use for a pool
+    """
+
+    hdd_total = 0
+    ssd_total = 0
+    for host_name in config.hosts:
+        host = config.hosts[host_name]
+        if host.selected:
+            hdd_total += host.hdd_count
+            ssd_total += host.ssd_count
+
+    total_drives = max(hdd_total, ssd_total)
+    if total_drives < 5:
+        return 64
+    elif total_drives < 10:
+        return 128
+    elif total_drives < 50:
+        return 512
+    else:
+        return 1024
