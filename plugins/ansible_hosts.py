@@ -14,7 +14,8 @@ yml_file = '/etc/ansible/hosts'
 def plugin_main(config=None):
 
     if not config:
-        return []
+        raise ValueError("Config object not received from caller")
+
     role_to_group = {
         "mon": "mons",
         "osd": "osds",
