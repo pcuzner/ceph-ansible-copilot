@@ -34,6 +34,7 @@ palette = [
     ('reversed', 'light gray', 'black'),
     ('bkgnd_white', 'black', 'white'),
     ('error_message', 'white', 'dark red'),
+    ('warning_message', 'black', 'brown'),
     ('error_box', 'dark red', 'light gray'),
     ('key', 'light cyan', 'black', 'underline'),
     ('title', 'white', 'dark blue',),
@@ -290,8 +291,11 @@ class App(object):
 
     def show_message(self, msg_text, immediate=False):
         self.msg_text = msg_text
-        if msg_text.lower().startswith('error'):
+        msg = msg_text.lower()
+        if msg.startswith('error'):
             attr = 'error_message'
+        elif msg.startswith('warning'):
+            attr = 'warning message'
         else:
             attr = 'message'
         self.msg.set_attr_map({None: attr})
