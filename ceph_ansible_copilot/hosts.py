@@ -54,9 +54,9 @@ class Host(object):
 
     def seed(self, ansible_facts):
         nic_drivers = {
-            "ixgbe": "10g",
-            "i40e": "40g",
-            "cxgb": "10g"
+            "ixgbe": 10,
+            "i40e": 40,
+            "cxgb": 10
         }
 
         self._facts = ansible_facts['ansible_facts']
@@ -98,12 +98,12 @@ class Host(object):
                 net_str = '{}/{}'.format(network, cidr)
                 subnets.add(net_str)
 
-                nic_type = nic_drivers.get(self._facts[key].get('module'), "1g")
+                nic_type = nic_drivers.get(self._facts[key].get('module'), 1)
                 self.nics[nic_id] = {
                                      "network": net_str,
                                      "driver": self._facts[key].get("module"),
                                      "state": self._facts[key].get("active"),
-                                     "nic_type": nic_type
+                                     "nic_gb": nic_type
                                     }
 
         self.subnets = list(subnets)
