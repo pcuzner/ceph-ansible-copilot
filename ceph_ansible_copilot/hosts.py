@@ -2,7 +2,7 @@ import json
 from collections import OrderedDict
 from ceph_ansible_copilot.utils import (merge_dicts, netmask_to_cidr,
                                         bytes2human)
-
+from ceph_ansible_copilot.rules import HostState
 
 class Host(object):
 
@@ -21,7 +21,7 @@ class Host(object):
         self.hostname = hostname
         self.roles = roles if roles else []
         self._facts = {}                # populated by ansible setup module
-        self.state = 'Ready'          # Unknown, Ready, Failed, Warning
+        self.state = 'Unknown'          # Unknown, OK, NOTOK
         self.state_msg = ''
         self.selected = True
 
@@ -108,6 +108,12 @@ class Host(object):
 
         self.subnets = list(subnets)
 
+    def check(self):
+
+        host_state = HostState(self)
+        host_state.check()
+        self.state = host_state.state
+        self.state_msg = host_state.state_long
 
     def _free_disks(self, rotational=1):
         free = {}
@@ -146,7 +152,7 @@ class Host(object):
         """ function used by the table shown in the Hosts Validation page"""
 
         if self.selected:
-            sel = ' X ' if self.state.lower() == 'ready' else ' '*3
+            sel = ' X ' if self.state.lower() == 'ok' else ' '*3
         else:
             sel = ' '*3
 
@@ -154,16 +160,16 @@ class Host(object):
 
         # use a _ char in the string to help visual formatting
         s = ("{}_{}_{:<12s}__{:>2d}_{:>4s}__{:>2d}_{:>3d}_"
-             "{:>3d}_{:>4s}_{:<7s}".format(sel,
-                                           self.role_types,
-                                           self.hostname[:12],
-                                           self.core_count,
-                                           bytes2human(ram_bytes),
-                                           self.nic_count,
-                                           self.hdd_count,
-                                           self.ssd_count,
-                                           bytes2human(self.disk_capacity),
-                                           self.state[:7]))
+             "{:>3d}_{:>4s}_{:<11s}".format(sel,
+                                            self.role_types,
+                                            self.hostname[:12],
+                                            self.core_count,
+                                            bytes2human(ram_bytes),
+                                            self.nic_count,
+                                            self.hdd_count,
+                                            self.ssd_count,
+                                            bytes2human(self.disk_capacity),
+                                            self.state[:11]))
         s = s.replace('_', ' ')
 
         return s
