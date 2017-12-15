@@ -6,6 +6,8 @@ from .base import (UIBaseClass,
                    FilteredEdit,
                    ui_button)
 
+from ceph_ansible_copilot.rules import ClusterState
+
 from ceph_ansible_copilot.utils import (expand_hosts,
                                         check_dns,
                                         check_ssh_access)
@@ -177,10 +179,6 @@ class UI_Host_Definition(UIBaseClass):
         rgws = expand_hosts(self.rgw_list.base_widget.edit_text)
         mdss = expand_hosts(self.mds_list.base_widget.edit_text)
 
-        # with the list expanded, the next thing to check is the deployment
-        # rules
-        # TODO
-
         host_list = list(set(mons + osds + rgws + mdss))
 
         app.show_message("Checking DNS for {} "
@@ -202,17 +200,6 @@ class UI_Host_Definition(UIBaseClass):
                                  ' for; {}'.format(','.join(ssh_errors)))
             return
 
-
-        # all provided hosts resolve, so lets continue
-        # self.data['mon_list'] = mons
-        # self.data['osd_list'] = osds
-        # self.data['rgw_list'] = rgws
-        # self.data['mds_list'] = mdss
-        cfg.mons = mons
-        cfg.osds = osds
-        cfg.rgws = rgws
-        cfg.mdss = mdss
-
         # Create the host objects
         for hostname in host_list:
             roles = []
@@ -227,6 +214,20 @@ class UI_Host_Definition(UIBaseClass):
 
             hosts[hostname] = Host(hostname=hostname,
                                    roles=roles)
+
+        # Final check performs a high level membership check
+        c_state = ClusterState(hosts,
+                               mode=app.opts.mode,
+                               install_source=cfg.sw_source)
+        c_state.check()
+        if c_state.state != 'OK':
+            app.show_message(c_state.state_long)
+            return
+
+        cfg.mons = mons
+        cfg.osds = osds
+        cfg.rgws = rgws
+        cfg.mdss = mdss
 
         app.next_page()
 
