@@ -161,7 +161,8 @@ class App(object):
 
         self.loop = None
         self.cfg = Config()
-        self.hosts = {}
+        self.opts = opts
+        self.hosts = dict()
 
         if opts.playbook:
             self.playbook = opts.playbook
