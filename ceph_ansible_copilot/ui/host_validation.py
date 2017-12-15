@@ -72,7 +72,10 @@ class UI_Host_Validation(UIBaseClass):
                                                            ['unreachable']))
 
         for host in probe_callback.stats['successes']:
+            # populate with ansible facts
             hosts[host].seed(probe_callback.stats['successes'][host])
+            # validate the hosts config against the required roles
+            hosts[host].check()
 
         self.validate()
         self.probed = True
