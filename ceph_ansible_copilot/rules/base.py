@@ -42,9 +42,9 @@ class BaseCheck(object):
     def state_long(self):
         state_desc = list()
         if len(self.problems['error']) > 0:
-            state_desc.append("Error:{}".format(','.join(self.problems['error'])))
+            state_desc.append("Error:{}".format(', '.join(self.problems['error'])))
         if len(self.problems['warning']) > 0:
-            state_desc.append("Warning:{}".format(','.join(self.problems['warning'])))
+            state_desc.append("Warning:{}".format(', '.join(self.problems['warning'])))
 
         return '|'.join(state_desc)
 
