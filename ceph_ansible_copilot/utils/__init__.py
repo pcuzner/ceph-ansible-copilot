@@ -15,5 +15,6 @@ from .utils import (bytes2human,
                     setup_ansible_cfg,
                     restore_ansible_cfg,
                     get_used_roles,
-                    get_pgnum
+                    get_pgnum,
+                    SSHConfig
                     )
