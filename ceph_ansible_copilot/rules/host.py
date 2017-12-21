@@ -34,7 +34,7 @@ class HostState(BaseCheck):
         if available_cpu < HostState.reqs['os']['cpu']:
             self._add_problem('warning', 'CPU Core count too low')
         if available_ram < HostState.reqs['os']['ram']:
-            self._add_problem('error', 'Insufficient RAM')
+            self._add_problem('warning', 'Insufficient RAM')
 
     def _check_network(self):
         if 'osd' in self.host.roles:
