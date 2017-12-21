@@ -46,7 +46,7 @@ class BaseCheck(object):
         if len(self.problems['warning']) > 0:
             state_desc.append("Warning:{}".format(', '.join(self.problems['warning'])))
 
-        return '|'.join(state_desc)
+        return ' / '.join(state_desc)
 
 
 
