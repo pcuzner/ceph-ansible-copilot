@@ -12,7 +12,8 @@ import argparse
 
 import ceph_ansible_copilot
 
-from ceph_ansible_copilot.utils import PluginMgr, restore_ansible_cfg
+from ceph_ansible_copilot.utils import (PluginMgr, restore_ansible_cfg,
+                                        SSHConfig)
 
 from ceph_ansible_copilot.ui import (UI_Welcome,
                                      UI_Environment,
@@ -152,6 +153,7 @@ class App(object):
         self.debug = None           # used to check state during debugging
         self.config_rules = rules[opts.mode]
         self.plugin_mgr = None
+        self.ssh = None
 
         self.msg = None
         self.msg_text = None
@@ -331,6 +333,12 @@ class App(object):
             return
 
     def setup(self):
+
+        self.ssh = SSHConfig()
+        if not self.ssh.configured:
+            print("Unable to access/create ssh keys")
+            sys.exit(4)
+
         self.file_timestamp = time.ctime()
         self.timestamp = int(time.time())
         self.log = setup_logging()
