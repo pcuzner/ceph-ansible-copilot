@@ -192,14 +192,6 @@ class UI_Host_Definition(UIBaseClass):
                              '{}'.format(ctx, ','.join(lookup_errors)))
             return
 
-        app.show_message("Checking passwordless ssh is configured",
-                         immediate=True)
-        ssh_errors = check_ssh_access(host_list=host_list)
-        if ssh_errors:
-            app.show_message('Error: Passwordless ssh access failed'
-                                 ' for; {}'.format(','.join(ssh_errors)))
-            return
-
         # Create the host objects
         for hostname in host_list:
             roles = []
@@ -222,6 +214,14 @@ class UI_Host_Definition(UIBaseClass):
         c_state.check()
         if c_state.state != 'OK':
             app.show_message(c_state.state_long)
+            return
+
+        app.show_message("Checking passwordless ssh is configured",
+                         immediate=True)
+        ssh_errors = check_ssh_access(hosts=hosts)
+        if ssh_errors:
+            app.show_message('Error: Passwordless ssh access failed'
+                             ' for; {}'.format(','.join(ssh_errors)))
             return
 
         cfg.mons = mons
