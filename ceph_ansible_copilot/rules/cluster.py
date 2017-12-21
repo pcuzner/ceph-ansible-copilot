@@ -18,6 +18,8 @@ class ClusterState(BaseCheck):
         self.mode = mode
         self.installation_source = install_source
         self.hosts_by_role = dict()
+        self.selected_hosts = set()
+
         self._analyse_roles()
 
         assert isinstance(hosts, dict), \
@@ -33,6 +35,8 @@ class ClusterState(BaseCheck):
             host = self.hosts[hostname]
             if not host.selected:
                 continue
+
+            self.selected_hosts.add(hostname)
 
             for role in host.roles:
                 if role in self.hosts_by_role:
@@ -63,7 +67,11 @@ class ClusterState(BaseCheck):
                                   '{} mon(s) is invalid for production'.format(mon_count))
 
         else:
-            if self.mons % 2 == 0:
+            if mon_count == 0:
+                self._add_problem('error',
+                                  "No mons selected")
+                return
+            if mon_count % 2 == 0:
                 self._add_problem('error',
                                   '#MONs must be odd ({})'.format(mon_count))
 
@@ -95,4 +103,14 @@ class ClusterState(BaseCheck):
                             break
         else:
             pass
+
+    def _check_host_states(self):
+
+        for hostname in self.selected_hosts:
+            host = self.hosts[hostname]
+            if host.state_msg.lower().startswith('error'):
+                self._add_problem('error',
+                                  "Selected hosts have errors. Resolve, "
+                                  "then click 'Next'")
+                break
 
