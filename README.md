@@ -44,7 +44,8 @@ Here's an example run that illustrates the workflow for a small cluster of 3 nod
 
 ## What does it need to run?
 ansible-2.4 or above  
-python-urwid  
+python-urwid 
+python2-paramiko
 ceph-ansible 
 
 ## How do I install and run it?
