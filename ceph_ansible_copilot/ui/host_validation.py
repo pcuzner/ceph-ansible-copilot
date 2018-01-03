@@ -1,6 +1,8 @@
 import urwid
+
 from .base import UIBaseClass, ui_button, TableRow
 from ceph_ansible_copilot.ansible import ResultCallback, DynamicPlaybook
+from ceph_ansible_copilot.rules import ClusterState
 
 
 class UI_Host_Validation(UIBaseClass):
@@ -72,9 +74,12 @@ class UI_Host_Validation(UIBaseClass):
                                                            ['unreachable']))
 
         for host in probe_callback.stats['successes']:
+            # populate with ansible facts
             hosts[host].seed(probe_callback.stats['successes'][host])
+            # validate the hosts config against the required roles
+            hosts[host].check()
 
-        self.validate()
+        # self.validate()
         self.probed = True
         self.populate_table()
 
@@ -86,8 +91,8 @@ class UI_Host_Validation(UIBaseClass):
         # rows updating the copilot msg widget
         app.show_message(msg, immediate=True)
 
-    def validate(self):
-        return
+    # def validate(self):
+    #     return
 
     def clear_table(self):
         app = self.parent
@@ -123,6 +128,16 @@ class UI_Host_Validation(UIBaseClass):
         cfg = self.parent.cfg
 
         if self.probed:
+
+            # The results of the probe must leace us with a valid cluster,
+            # so check the hosts again
+            c_state = ClusterState(hosts,
+                                   mode=app.opts.mode,
+                                   install_source=cfg.sw_source)
+            c_state.check()
+            if c_state.state != 'OK':
+                app.show_message(c_state.state_long)
+                return
 
             osd_hosts = [h for h in hosts
                          if hosts[h].selected and 'osd' in hosts[h].roles

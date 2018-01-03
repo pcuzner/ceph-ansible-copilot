@@ -93,6 +93,8 @@ class TableRow(urwid.WidgetWrap):
             pass
         elif key in ['R', 'r']:
             pass
+        elif key in ['F', 'f']:
+            pass
         else:
             return key
 
@@ -110,14 +112,10 @@ class TableRow(urwid.WidgetWrap):
         else:
             field = self.text[3:].split()
             host_name = field[1]
-            if hosts[host_name].state.lower() == 'ready':
-                status = hosts[host_name].state
+            if hosts[host_name].state.lower() == 'ok':
+                msg = '{} OK'.format(host_name)
             else:
-                status = "{}:{}".format(hosts[host_name].state,
-                                        hosts[host_name].state_msg)
-
-            msg = "{} {}".format(host_name,
-                                 status)
+                msg = hosts[host_name].state_msg
 
             app.show_message(msg)
 

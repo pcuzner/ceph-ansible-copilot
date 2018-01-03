@@ -40,6 +40,7 @@ setup(
     packages=[
         "ceph_ansible_copilot",
         "ceph_ansible_copilot/ansible",
+        "ceph_ansible_copilot/rules",
         "ceph_ansible_copilot/ui",
         "ceph_ansible_copilot/utils",
         ],

@@ -12,7 +12,8 @@ import argparse
 
 import ceph_ansible_copilot
 
-from ceph_ansible_copilot.utils import PluginMgr, restore_ansible_cfg
+from ceph_ansible_copilot.utils import (PluginMgr, restore_ansible_cfg,
+                                        SSHConfig)
 
 from ceph_ansible_copilot.ui import (UI_Welcome,
                                      UI_Environment,
@@ -34,6 +35,7 @@ palette = [
     ('reversed', 'light gray', 'black'),
     ('bkgnd_white', 'black', 'white'),
     ('error_message', 'white', 'dark red'),
+    ('warning_message', 'black', 'brown'),
     ('error_box', 'dark red', 'light gray'),
     ('key', 'light cyan', 'black', 'underline'),
     ('title', 'white', 'dark blue',),
@@ -151,6 +153,7 @@ class App(object):
         self.debug = None           # used to check state during debugging
         self.config_rules = rules[opts.mode]
         self.plugin_mgr = None
+        self.ssh = None
 
         self.msg = None
         self.msg_text = None
@@ -160,7 +163,8 @@ class App(object):
 
         self.loop = None
         self.cfg = Config()
-        self.hosts = {}
+        self.opts = opts
+        self.hosts = dict()
 
         if opts.playbook:
             self.playbook = opts.playbook
@@ -290,8 +294,11 @@ class App(object):
 
     def show_message(self, msg_text, immediate=False):
         self.msg_text = msg_text
-        if msg_text.lower().startswith('error'):
+        msg = msg_text.lower()
+        if msg.startswith('error'):
             attr = 'error_message'
+        elif msg.startswith('warning'):
+            attr = 'warning message'
         else:
             attr = 'message'
         self.msg.set_attr_map({None: attr})
@@ -326,6 +333,12 @@ class App(object):
             return
 
     def setup(self):
+
+        self.ssh = SSHConfig()
+        if not self.ssh.configured:
+            print("Unable to access/create ssh keys")
+            sys.exit(4)
+
         self.file_timestamp = time.ctime()
         self.timestamp = int(time.time())
         self.log = setup_logging()
