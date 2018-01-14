@@ -32,9 +32,9 @@ class HostState(BaseCheck):
                 available_ram -= (self.disk_count * HostState.reqs[role]['ram'])
 
         if available_cpu < HostState.reqs['os']['cpu']:
-            self._add_problem('warning', 'CPU Core count too low')
+            self._add_problem('warning', "#CPU's low")
         if available_ram < HostState.reqs['os']['ram']:
-            self._add_problem('warning', 'Insufficient RAM')
+            self._add_problem('warning', 'RAM low')
 
     def _check_network(self):
         if 'osd' in self.host.roles:
@@ -44,12 +44,11 @@ class HostState(BaseCheck):
             # 12 disks per 10g link - throughput optimised check
             multiplier = int(math.ceil(self.disk_count / float(self.disks_per_10g)))
             if bandwidth < (multiplier * 10):
-                self._add_problem('warning', 'Network bandwidth low for {}'
-                                             ' disks'.format(self.disk_count))
+                self._add_problem('warning', 'Network bandwidth low')
 
     def _check_role_prereq(self):
 
         if 'osd' in self.host.roles:
 
             if self.disk_count == 0:
-                self._add_problem('error', 'OSD role with no disks!')
+                self._add_problem('error', 'OSD without disks')
