@@ -8,5 +8,6 @@ from .environment import UI_Environment
 from .finished import UI_Finish
 from .host_definition import UI_Host_Definition
 from .host_validation import UI_Host_Validation
+from .host_credentials import UI_Credentials
 from .networking import UI_Network
 from .welcome import UI_Welcome
