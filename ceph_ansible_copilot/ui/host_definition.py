@@ -9,8 +9,7 @@ from .base import (UIBaseClass,
 from ceph_ansible_copilot.rules import ClusterState
 
 from ceph_ansible_copilot.utils import (expand_hosts,
-                                        check_dns,
-                                        check_ssh_access)
+                                        check_dns)
 
 from ceph_ansible_copilot import Host
 
@@ -23,11 +22,10 @@ class UI_Host_Definition(UIBaseClass):
     host_name_chars = (string.digits + string.letters + '[]-')
 
     def __init__(self, parent):
-        # self.hosts_ok = False
         self.text = (
-            "Host Definition\n\nIn the boxes below enter the names, or "
+            "{}\n\nIn the boxes below enter the names, or "
             "hostname masks for the servers that will become members of "
-            "a Ceph cluster"
+            "a Ceph cluster".format(self.title)
         )
 
         self.mons =FilteredEdit(multiline=True,
@@ -46,6 +44,7 @@ class UI_Host_Definition(UIBaseClass):
                             urwid.LineBox(urwid.AttrMap(
                          urwid.Filler(self.osds, 'top'), "body"),
                          title='OSDs'), "body"), 14)
+
         urwid.connect_signal(self.osds, "change", self.check_osd_input)
 
         self.rgws = FilteredEdit(multiline=True,
@@ -127,21 +126,12 @@ class UI_Host_Definition(UIBaseClass):
                 host_count += 1
                 host_state = self.hostname_ok(host)
                 if host_state != 'ok':
-                #     self.hosts_ok = True
-                #     pass
-                # else:
-                    # houston, we have a problem
-                    # self.hosts_ok = False
+
                     self.valid_hosts[host_type] = False
-                #base_widget gives fixededit
-                # original widget gives the container
-                # orginal.base gives the filtered edit
 
                     lbox.original_widget.set_attr_map({None: "error_box"})
                     app.show_message('Error: {}'.format(host_state))
 
-
-        # if self.hosts_ok:
         if self.valid_hosts[host_type]:
             # set the linebox attr to body
             lbox.original_widget.set_attr_map({None: "body"})
@@ -218,11 +208,6 @@ class UI_Host_Definition(UIBaseClass):
 
         app.show_message("Checking passwordless ssh is configured",
                          immediate=True)
-        ssh_errors = check_ssh_access(hosts=hosts)
-        if ssh_errors:
-            app.show_message('Error: Passwordless ssh access failed'
-                             ' for; {}'.format(','.join(ssh_errors)))
-            return
 
         cfg.mons = mons
         cfg.osds = osds
@@ -236,7 +221,6 @@ class UI_Host_Definition(UIBaseClass):
 
         host_widgets = urwid.Padding(self.host_panels,
                                     left=2, right=2)
-
 
         return urwid.AttrMap(
                  urwid.Filler(

@@ -25,10 +25,6 @@ class UI_Environment(UIBaseClass):
             "will determine the way the cluster is installed and configured."
         )
 
-        # self.cluster_name = FixedEdit(caption="Cluster Name    : ",
-        #                               width=12,
-        #                               valid_chars=self.alphanum)
-        # self.cluster_name.edit_text = 'ceph'
         self.deployment_user = FixedEdit("Deployment User : ", width=8,
                                          valid_chars=self.alphanum)
         self.deployment_user.edit_text = 'root'
@@ -73,18 +69,15 @@ class UI_Environment(UIBaseClass):
         # then set the data dict to contain the relevant information from this
         # page
 
-        # self.data['deployment_user'] = ansible_user
         cfg.deployment_user = ansible_user
-        # self.data['osd_objectstore'] = get_selected_button(self.osd_type)
+
         cfg.osd_objectstore = get_selected_button(self.osd_type)
-        # self.data['sw_source'] = get_selected_button(self.sw_source_group)
+
         cfg.sw_source = get_selected_button(self.sw_source_group)
 
         if get_selected_button(self.dmcrypt_group) == 'encrypted':
             cfg.dmcrypt = 'true'
-            # self.data['dmcrypt'] = 'true'
         else:
-            # self.data['dmcrypt'] = 'false'
             cfg.dmcrypt = 'false'
 
         app.next_page()
@@ -94,8 +87,6 @@ class UI_Environment(UIBaseClass):
 
         names = urwid.Padding(
             urwid.Pile([
-                # urwid.AttrMap(self.cluster_name, 'editbox'),
-                # urwid.AttrMap(self.cluster_network, 'editbox'),
                 urwid.AttrMap(self.deployment_user, 'editbox')]),
             left=2,
             right=2
