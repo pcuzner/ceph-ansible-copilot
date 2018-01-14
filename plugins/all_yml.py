@@ -51,7 +51,6 @@ def create_yml(config):
     out = list()
     out.append('fetch_directory: ~/ceph-ansible-keys')
     out.append('cluster: {}'.format(config.cluster_name))
-    # out.append('ceph_release_num: {}'.format(config['ceph_version']))
     out.append(' ')
 
     sw_src = config.sw_source
@@ -109,7 +108,7 @@ def create_yml(config):
 def get_hosts(host_data, host_type):
     return [h for h in host_data
             if host_data[h].selected and host_type in host_data[h].roles
-            and host_data[h].state.lower() == 'ready']
+            and host_data[h].state.lower().startswith('ok')]
 
 
 def get_common_nic(role, host_data, public_network):
