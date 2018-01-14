@@ -7,15 +7,15 @@ class UI_Network(UIBaseClass):
         "For production, dedicated public and cluster networks are "
         "recommended"
     )
-    seq_no = 5
+    seq_no = 6
 
     def __init__(self, parent):
 
         self.text = (
-            "Network Configuration\n\nDuring the host probes, the available "
+            "{}\n\nDuring the host probes, the available "
             "networks have been autodetected. Networks that are common to all "
             "hosts appear on the left, and networks common to all OSD hosts "
-            "are shown on the right."
+            "are shown on the right.".format(self.title)
         )
 
         self.public_grp = []
@@ -87,9 +87,7 @@ class UI_Network(UIBaseClass):
 
         if public:
             cfg.public_network = public[0]
-            # self.data['public_network'] = public[0]
             cfg.cluster_network = cluster[0]
-            # self.data['cluster_network'] = cluster[0]
             app.next_page()
         else:
             app.show_message("Error: public network selection unavailable")

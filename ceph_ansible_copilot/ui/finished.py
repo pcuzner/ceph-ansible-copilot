@@ -7,7 +7,7 @@ class UI_Finish(UIBaseClass):
 
     title = "Finish"
     hint = "Exit co-pilot"
-    seq_no = 8
+    seq_no = 9
 
     def __init__(self, parent):
         self.text = (
