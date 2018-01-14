@@ -3,11 +3,22 @@ Guided text based installation UI, that runs ceph-ansible. The goal of the proje
 
 ## Features  
 
+### 0.9.5  
+- Added ssh credentials workflow  
+  - hosts selected are checked for passwordless ssh access (root only at the moment)  
+  - for hosts that fail the ssh check, the admin may enter a root password common to all hosts or specify a password per host  
+  - copilot uses the passwords(s) provided to setup passwordless ssh  
+  - once all hosts have passed the ssh check, the UI continues to the next page (host validation)  
+
 ### 0.9.2
-- performs cluster & host sanity checks (primarily useful for prod deployments)  
-  - confirm the number of hosts are appropriate for the intended role  
-  - confirm host specs are appropriate (e.g. cpu core count matches #disks for osd hosts)  
-  - align to service collocation rules (e.g. mon + osd = bad idea)   
+- perform cluster & host sanity checks (primarily useful for prod deployments)  
+  - support two deployment modes - production and development  
+  - the mode is selected using a *--mode* switch when copilot is started   
+  - in **dev** mode, pretty much anything is allowed (the default!)   
+  - in **prod** mode;  
+    - confirm the number of hosts are appropriate for the intended role  
+    - confirm host specs are appropriate (e.g. cpu core count matches #disks for osd hosts)  
+    - align to service collocation rules (e.g. mon + osd = bad idea)   
 
 ### 0.9.1
 - supports the following ceph roles; mons, osds, radosgw and mds
@@ -49,12 +60,15 @@ Here's an example run that illustrates the workflow for a small cluster of 3 nod
   
 ![copilot in action](copilot.gif)
 
-
+A more detailed demo can be found on my ![blog](http://opensource-storage.blogspot.co.nz/2017/12/want-to-install-ceph-but-afraid-of.html)    
+  
 ## What does it need to run?
-- ansible-2.4 or above  
+- ansible-2.4.x (tested against 2.4.1 and 2.4.2)  
 - python-urwid  
 - python2-paramiko  
 - ceph-ansible - tested against Master (Dec 2017)    
+
+*tested using CentOS7, with the above package versions*
 
 ## How do I install and run it?
 1. download the archive to your ansible server  
@@ -72,7 +86,9 @@ NB. You need to cd to the ceph-ansible directory, since the playbook needs to re
 
 ## What's next?  
 Here's my backlog  
-1. handle ssh setup instead of relying on the admin. i.e. add a credentials page which gets populated with the hosts that had passwordless login failures, to prompt the admin for passwords to set up the missing ssh keys.  
-2. support iscsi gateways role  
-3. post install config - what about enabling add on pages through plugins for radosgw config for example.  
+1. support iscsi gateways role  
+2. post install config - what about enabling add on pages through plugins for radosgw config for example.   
+3. add more debug information to improve support (e.g. ansible messages, host information)  
 
+## Longer term...  
+Use this code base as a framework for a more comprehensive Ceph Installation Manager  
