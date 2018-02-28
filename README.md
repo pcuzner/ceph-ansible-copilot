@@ -11,7 +11,7 @@ Here's an example run that illustrates the workflow for a small cluster of 3 nod
 
 ![copilot in action](screenshots/copilot.gif)
 
-A more detailed demo can be found on my ![blog](http://opensource-storage.blogspot.co.nz/2017/12/want-to-install-ceph-but-afraid-of.html) and there are some screenshots showing the welcome page across the major distros in the screenshots folder.    
+A more detailed demo can be found on my [blog](http://opensource-storage.blogspot.co.nz/2017/12/want-to-install-ceph-but-afraid-of.html) and there are some screenshots showing the welcome page across the major distros in the screenshots folder.    
 
 ## Features  
 ### 0.9.5  
@@ -100,9 +100,10 @@ Notes.
 
 ## What's next?  
 Here's some ideas on how copilot could evolve;    
-1. support iSCSI gateways role  
-2. post install configuration..what about enabling add-on pages through plugins for radosgw config for example.   
-3. add more debug information to improve support (e.g. ansible messages, host information)  
+1. support non-root user Installation
+2. support iSCSI gateways role  
+3. post install configuration..what about enabling add-on pages through plugins for radosgw config for example.   
+4. add more debug information to improve support (e.g. ansible messages, host information)  
 
 ## Longer term...  
 Crystal ball gazing - why not take this workflow to a cockpit plugin to provide a web frontend to the ceph-ansible installation process? *Now that would be cool!*
