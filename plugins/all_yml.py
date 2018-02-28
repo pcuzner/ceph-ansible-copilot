@@ -55,6 +55,7 @@ def create_yml(config):
 
     sw_src = config.sw_source
     ceph_repo = repo[sw_src]['repo']
+
     out.append('ceph_origin: {}'.format(repo[sw_src]['type']))
     if ceph_repo:
         out.append('ceph_repository: {}'.format(ceph_repo))
@@ -107,8 +108,7 @@ def create_yml(config):
 
 def get_hosts(host_data, host_type):
     return [h for h in host_data
-            if host_data[h].selected and host_type in host_data[h].roles
-            and host_data[h].state.lower().startswith('ok')]
+            if host_data[h].selected and host_type in host_data[h].roles]
 
 
 def get_common_nic(role, host_data, public_network):
@@ -121,10 +121,12 @@ def get_common_nic(role, host_data, public_network):
     for h in host_group:
         host = host_data[h]
         for nic in host.nics.keys():
+            print("processing host {} nic {}".format(host, nic))
             if host.nics[nic]['network'] == public_network:
                 nics_on_public.add(nic)
                 on_public.append(h)
-
+    print("nics on public {}".format(nics_on_public))
+    print("on public {}".format(on_public))
     if len(on_public) != len(host_group):
         raise EnvironmentError("{} must connect to the public "
                                "subnet ({})".format(role_txt,
