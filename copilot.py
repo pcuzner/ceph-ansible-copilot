@@ -386,7 +386,6 @@ class App(object):
         # if we had a site_yml plugin run it again in delete mode
         # to remove the additional include_vars tasks
         if self.plugin_mgr.plugins['site_yml'].executed:
-        # if 'site_yml' in self.plugin_mgr.plugins:
             self.log.info("running site_yml again to remove "
                           "the include_vars task for all.yml")
             mod = self.plugin_mgr.plugins['site_yml'].module
@@ -416,7 +415,8 @@ def setup_logging():
 
 def parse_cli_options():
 
-    modes = ['dev', 'prod']             # 1st entry is the default!
+    modes = ['dev', 'prod']                     # 1st entry is the default!
+    copilot_version = ceph_ansible_copilot.__version__
 
     parser = argparse.ArgumentParser(description="ceph-ansible copilot")
 
@@ -438,7 +438,7 @@ def parse_cli_options():
 
     parser.add_argument('--version', action='version',
                         version='{} {}'.format(parser.prog,
-                                               ceph_ansible_copilot.__version__))
+                                               copilot_version))
 
     args = parser.parse_args()
     return args
