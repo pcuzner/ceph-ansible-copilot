@@ -1,26 +1,14 @@
 
-import os
 import json
-import socket
 from collections import OrderedDict
 
-from paramiko import SSHClient, AutoAddPolicy
-from paramiko.ssh_exception import (AuthenticationException,
-                                    NoValidConnectionsError, SSHException)
-
 from ceph_ansible_copilot.utils import (merge_dicts, netmask_to_cidr,
-                                        bytes2human)
+                                        bytes2human, SSHsession)
 from ceph_ansible_copilot.rules import HostState
-
-
-# Requires
-# 'install' command on the target ceph nodes
 
 
 class Host(object):
 
-    # supported_platforms = ['RedHat']
-    connection_timeout = 2
     supported_roles = OrderedDict([
         ("mon", "M"),
         ("osd", "O"),
@@ -28,22 +16,11 @@ class Host(object):
         ("mds", "F"),
     ])
 
-    ssh_status = {
-        0: "ok",
-        4: "connection attempt timed out",
-        8: "authentication exception",
-        12: "host unresponsive/uncontactable",
-        16: "copy of public key failed",
-        20: "unable to copy key without a password"
-    }
-
-    # nic_prefix = ('en', 'eth')          # tuple
-
     def __init__(self, hostname=None, roles=None):
+
         self.hostname = hostname
-        self.username = 'root'
-        self.ssh_ready = False
-        self.password = None
+        self.ssh = SSHsession(self.hostname)
+
         self.roles = roles if roles else []
         self._facts = {}                # populated by ansible setup module
         self.state = 'Unknown'          # Unknown, OK, NOTOK
@@ -142,95 +119,6 @@ class Host(object):
         self.state = host_state.state
         self.state_msg = host_state.state_long
 
-    @property
-    def ssh_state(self):
-
-        client = SSHClient()
-        rc = self._ssh_connect(client)
-        if rc == 0:
-            client.close()
-
-        return rc
-
-    def _ssh_connect(self, client, use_password=False):
-
-        client.set_missing_host_key_policy(AutoAddPolicy())
-        client.load_host_keys(
-            os.path.expanduser('~root/.ssh/known_hosts'))
-
-        conn_args = {
-            "hostname": self.hostname,
-            "username": self.username,
-            "timeout": Host.connection_timeout
-        }
-
-        if use_password:
-            conn_args['password'] = self.password
-
-        try:
-            client.connect(**conn_args)
-
-        except socket.timeout:
-            # connection taking too long
-            return 4
-
-        except (AuthenticationException, SSHException):
-            # Auth issue
-            return 8
-
-        except NoValidConnectionsError:
-            # ssh uncontactable e.g. host is offline, port 22 inaccessible
-            return 12
-
-        return 0
-
-    def copy_key(self):
-
-        if not self.password:
-            return 20
-
-        copy_state = 0
-
-        auth_key_file = "~/.ssh/authorized_keys"
-        check_cmd = "cat {}".format(auth_key_file)
-        client = SSHClient()
-
-        rc = self._ssh_connect(client, use_password=True)
-
-        if rc == 0:
-            # connection successful
-            # read our public key
-            with open(os.path.expanduser("~/.ssh/id_rsa.pub"), "r") as pub:
-                local_key = pub.readlines()
-
-            stdin, stdout, stderr = client.exec_command(check_cmd)
-
-            output = stdout.readlines()
-            if output:
-                # assumption is the format of the auth file is OK to use
-                if local_key not in output:
-                    # local key needs adding
-                    cmd = "echo -e {} >> {}".format(local_key,
-                                                    auth_key_file)
-                    stdin, stdout, stderr = client.exec_command(cmd)
-                else:
-                    # key already there - noop
-                    pass
-            else:
-                # auth file not there
-                client.exec_command("install -DTm600 {}".format(auth_key_file))
-                client.exec_command("echo -e {} > {}".format(local_key,
-                                                             auth_key_file))
-
-            self.ssh_ready = True
-            client.close()
-        else:
-            # connection failure, unable to populate public key
-            copy_state = 16
-            self.ssh_ready = False
-
-        return copy_state
-
     def _free_disks(self, rotational=1):
         free = {}
         for disk_id in self._facts['ansible_devices']:
@@ -239,30 +127,6 @@ class Host(object):
                 if not disk['partitions']:
                     free[disk_id] = disk
         return free
-
-    # def validate(self):
-    #
-    #     # Basic Checks
-    #     if not self._facts:
-    #         self.state = "Failed"
-    #         self.state_msg = "Probe failure"
-    #         return
-    #
-    #     if self._facts.get('ansible_os_family') not in Host.supported_platforms:
-    #         self.state = "Failed"
-    #         self.state_msg = "Unsupported OS"
-    #         return
-
-        # # Process the roles
-        # for role in self.roles:
-        #     if role == 'mon':
-        #         self._valid_mon()
-        #     if role == 'osd':
-        #         self._valid_osd()
-        #     if role == 'rgw':
-        #         self._valid_rgw()
-
-        # return True
 
     def info(self):
         """ function used by the table shown in the Hosts Validation page"""
@@ -290,15 +154,15 @@ class Host(object):
 
         return s
 
-    # def _valid_mon(self):
-    #     return True
-    #
-    # def _valid_osd(self):
-    #     return True
-    #
-    # def _valid_rgw(self):
-    #     return True
-
     def __repr__(self):
-        return json.dumps({attr: getattr(self, attr) for attr in self.__dict__
-                           if not attr.startswith('_')}, indent=4)
+
+        dumper = dict()
+        for k, v in self.__dict__.items():
+            if k.startswith("_"):
+                continue
+            if isinstance(v, (str, int, list, dict)):
+                dumper[k] = v
+            else:
+                dumper[k] = json.loads(repr(v))
+
+        return json.dumps(dumper, indent=4)

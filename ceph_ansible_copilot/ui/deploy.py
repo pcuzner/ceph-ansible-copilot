@@ -9,7 +9,7 @@ class UI_Deploy(UIBaseClass):
 
     title = "Deploy"
     hint = "Run time will depend on the size of the cluster being created"
-    seq_no = 7
+    seq_no = 8
 
     def __init__(self, parent):
         self.text = (
@@ -35,7 +35,6 @@ class UI_Deploy(UIBaseClass):
         self.button_row = button_row([('Skip', self.skip_deploy),
                                       ('Deploy', self.deploy)])
         self.failed_hosts = []
-        # self.failure_desc_w = urwid.AttrMap(urwid.Text(''),"body")
         self.failure_list_w = urwid.SimpleListWalker([])
         self.failure_walker_w = urwid.ListBox(self.failure_list_w)
 
@@ -106,13 +105,12 @@ class UI_Deploy(UIBaseClass):
             # reset the failure table
             self.failure_title_w.set_text("")
             self.failure_list_w = urwid.SimpleListWalker([])
-            # self.failure_desc_w.base_widget.set_text("")
+
             app.refresh_ui()
             app.loop.widget = app.top
-            # loop.draw_screen()
 
         self.button_row.base_widget[1].set_label('Running')
-        # host_list = hosts.keys()
+
         host_list = '/etc/ansible/hosts'
         results = ResultCallback(pb_callout=self.page_update,
                                  logger=app.log)
@@ -125,7 +123,6 @@ class UI_Deploy(UIBaseClass):
                          "(using {})".format(os.path.basename(app.playbook)),
                          immediate=True)
 
-        # with CaptureSTDOUT() as pb_stdout:
         deploy_pb.run()
 
         cfg.playbook_rc = deploy_pb.rc

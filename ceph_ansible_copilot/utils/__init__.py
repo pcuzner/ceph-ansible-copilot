@@ -10,11 +10,11 @@ from .utils import (bytes2human,
                     expand_hosts,
                     check_dns,
                     get_selected_button,
-                    check_ssh_access,
                     valid_yaml,
                     setup_ansible_cfg,
                     restore_ansible_cfg,
                     get_used_roles,
-                    get_pgnum,
-                    SSHConfig
+                    get_pgnum
                     )
+
+from .ssh import SSHsession, SSHConfig

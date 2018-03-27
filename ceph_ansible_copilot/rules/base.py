@@ -34,9 +34,9 @@ class BaseCheck(object):
             return 'OK'
         else:
             if error_count > 0:
-                return 'NOTOK({}Err)'.format(error_count)
+                return 'NOTOK {} Err'.format(error_count)
             else:
-                return 'NOTOK({}Wrn)'.format(warn_count)
+                return 'OK {} Wrn'.format(warn_count)
 
     @property
     def state_long(self):

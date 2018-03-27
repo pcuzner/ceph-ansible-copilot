@@ -11,13 +11,14 @@ class UI_Welcome(UIBaseClass):
         self.next_btn = ui_button(callback=self.validate)
 
         self.text = (
-            "Welome\n\nCo-Pilot provides a simple to use, guided workflow to "
+            "{}\n\nCo-Pilot provides a simple to use, guided workflow to "
             "install your Ceph Cluster. Host selection and deployment "
             "readiness is validated prior to the installation process "
             "starting and installation itself is monitored within this "
             "interface.\n\n"
             "If errors are encountered during deployment, co-pilot will "
-            "show you the errors, and allow you to rerun the deployment."
+            "show you the errors, and allow you to rerun the "
+            "deployment.".format(self.title)
         )
 
         UIBaseClass.__init__(self, parent)

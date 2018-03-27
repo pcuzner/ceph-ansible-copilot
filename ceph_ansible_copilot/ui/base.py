@@ -178,21 +178,6 @@ class ButtonLabel(urwid.SelectableIcon):
         self.__super.set_text(label)
         self._cursor_position = len(label) + 1
 
-# class ErrorListBox(urwid.ListBox):
-#
-#     def keypress(self, size, key):
-#         cur_pos = self.get_focus()[1]
-#         if key == 'up':
-#
-#             if cur_pos == 0:
-#                 copilot.show_message("")
-#             else:
-#                 copilot.show_message("up {}:{}".format(cur_pos, self.get_focus()))
-#         elif key == 'down':
-#             # if self.get_focus() == len(self.body) - 1
-#             copilot.show_message("down")
-#         return key
-
 
 class DataRow(urwid.WidgetWrap):
 
@@ -268,6 +253,8 @@ class FixedEdit(urwid.Edit):
 
         if len(self.edit_text) > self.max_width:
             self.edit_text = self.edit_text[0:self.max_width]
+        else:
+            urwid.emit_signal(self, 'change')
 
         return rc
 
@@ -340,7 +327,6 @@ def ui_button(label='Next', align='right', callback=None):
              urwid.GridFlow([
                urwid.AttrMap(
                  MyButton(label=label, on_press=callback),
-                 # urwid.Button(label=label, on_press=callback),
                  'buttn', 'buttnf')],
                btn_size, 4, 0, align=align),
              left=2, right=2)

@@ -6,16 +6,9 @@ import pwd
 import socket
 import threading
 import Queue
-import getpass
 import yaml
 from yaml.scanner import ScannerError
 
-from paramiko.rsakey import RSAKey
-from paramiko.ssh_exception import SSHException
-
-from paramiko import SSHClient, AutoAddPolicy
-from paramiko.ssh_exception import (AuthenticationException,
-                                    NoValidConnectionsError)
 
 TCP_TIMEOUT = 2
 
@@ -124,19 +117,6 @@ def check_dns(host_list):
 def get_selected_button(button_group):
     return [btn.get_label() for btn in button_group
             if btn.state is True][0]
-
-
-def check_ssh_access(local_user=None, ssh_user='root', hosts=None):
-
-    ssh_errors = []
-    for hostname in hosts:
-        host = hosts[hostname]
-        if host.ssh_state == 0:
-            host.ssh_ready = True
-        else:
-            ssh_errors.append(hostname)
-
-    return sorted(ssh_errors)
 
 
 def valid_yaml(yml_data):
@@ -270,69 +250,3 @@ def get_pgnum(config):
         return 512
     else:
         return 1024
-
-
-class SSHConfig(object):
-
-    def __init__(self, user=None, autoadd=True):
-
-        self.configured = False
-
-        if not user:
-            self.user = getpass.getuser()
-        else:
-            self.user = user
-
-        if self.key_exists:
-            self.configured = True
-        else:
-            if autoadd:
-                self.add_key()
-            else:
-                self.configured = False
-
-    @property
-    def key_exists(self):
-        return os.path.exists(os.path.expanduser('~/.ssh/id_rsa'))
-
-    def add_key(self):
-        ssh_dir = os.path.expanduser('~/.ssh')
-        if not os.path.exists(ssh_dir):
-            # create the dir
-            os.mkdir(ssh_dir, 0700)
-
-        # key is needed
-        key = RSAKey.generate(4096)
-        pub_file = os.path.join(ssh_dir, 'id_rsa.pub')
-        prv_file = os.path.join(ssh_dir, 'id_rsa')
-        comment_str = '{}@{}'.format(self.user,
-                                     socket.gethostname())
-
-        # Setup the public key file
-        try:
-            with open(pub_file, "w", 0) as pub:
-                pub.write("ssh-rsa {} {}\n".format(key.get_base64(),
-                                                   comment_str))
-        except IOError:
-            print("Unable to write to {}".format(pub_file))
-            return
-        except SSHException:
-            print("generated key is invalid")
-            return
-        else:
-            os.chmod(pub_file, 0600)
-
-        # setup the private key file
-        try:
-            with open(prv_file, "w", 0) as prv:
-                key.write_private_key(prv)
-        except IOError:
-            print("Unable to write to {}".format(prv_file))
-            return
-        except SSHException:
-            print("generated key is invalid")
-            return
-        else:
-            os.chmod(prv_file, 0600)
-
-        self.configured = True

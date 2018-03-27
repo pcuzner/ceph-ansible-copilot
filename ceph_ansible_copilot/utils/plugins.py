@@ -7,6 +7,13 @@ import imp
 import json
 
 
+class Plugin(object):
+
+    def __init__(self, module):
+        self.module = module
+        self.executed = False
+
+
 class PluginMgr(object):
 
     def __init__(self, plugin_dir='/usr/share/ceph-ansible-copilot/plugins',
@@ -35,7 +42,7 @@ class PluginMgr(object):
 
                 # load the plugin
                 mod = self._load_plugin(full_path)
-                plugins[mod.__name__] = mod
+                plugins[mod.__name__] = Plugin(mod)
             else:
                 self.logger.warning("{} signature invalid, skipped")
                 self.logger.warning(json.dumps(signature))

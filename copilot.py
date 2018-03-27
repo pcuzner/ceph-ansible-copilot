@@ -18,6 +18,7 @@ from ceph_ansible_copilot.utils import (PluginMgr, restore_ansible_cfg,
 from ceph_ansible_copilot.ui import (UI_Welcome,
                                      UI_Environment,
                                      UI_Host_Definition,
+                                     UI_Credentials,
                                      UI_Host_Validation,
                                      UI_Network,
                                      UI_Commit,
@@ -26,45 +27,9 @@ from ceph_ansible_copilot.ui import (UI_Welcome,
                                      Breadcrumbs,
                                      ProgressOverlay)
 
+from ceph_ansible_copilot.ui.palette import palette
 
 CEPH_ANSIBLE_ROOT = '/usr/share/ceph-ansible'
-
-palette = [
-    ('body', 'black', 'light gray'),
-    ('message', 'light gray', 'black'),
-    ('reversed', 'light gray', 'black'),
-    ('bkgnd_white', 'black', 'white'),
-    ('error_message', 'white', 'dark red'),
-    ('warning_message', 'black', 'brown'),
-    ('error_box', 'dark red', 'light gray'),
-    ('key', 'light cyan', 'black', 'underline'),
-    ('title', 'white', 'dark blue',),
-    ('active_step', 'black', 'light gray'),
-    ('inactive_step', 'white', 'dark red'),
-    ('editbox', 'black', 'light gray'),
-    ('buttn', 'black', 'dark cyan'),
-    ('buttnf', 'white', 'dark blue', 'bold'),
-    ('pg_normal', 'white', 'dark blue'),
-    ('pg_complete', 'white', 'white')
-]
-
-
-rules = {
-    "dev": {
-        "collocation": ["MORF"],
-        "minimums": {
-            "mons": 1,
-            "osds": 1
-        }
-    },
-    "prod": {
-        "collocation": ["M...", ".OR.", ".O.F"],
-        "minimums": {
-            "mons": 3,
-            "osds": 3
-        }
-    }
-}
 
 
 def unknown_input(key):
@@ -151,7 +116,7 @@ class App(object):
         self.pb_complete = 0
         self.pb = None
         self.debug = None           # used to check state during debugging
-        self.config_rules = rules[opts.mode]
+
         self.plugin_mgr = None
         self.ssh = None
 
@@ -196,8 +161,10 @@ class App(object):
         copilot.left_pane.update()
         self.msg_text = self.page[self.pagenum].hint
         self.show_message(self.msg_text)
+
         new_page = self.page[self.pagenum]
         new_page.refresh()
+
         copilot.refresh_ui(left=self.left_pane.breadcrumbs,
                            right=new_page.render_page)
 
@@ -225,13 +192,17 @@ class App(object):
 
         srtd_names = sorted(self.plugin_mgr.plugins.keys())
 
+        plugins = self.plugin_mgr.plugins
+
         for plugin_name in srtd_names:
-            mod = self.plugin_mgr.plugins[plugin_name]
+            mod = plugins[plugin_name].module
             yml_file = mod.yml_file
 
             try:
                 self.log.info("Plugin: {}".format(plugin_name))
                 plugin_data = mod.plugin_main(self.cfg)
+
+                plugins[plugin_name].executed = True
 
             except BaseException as error:
                 # Use BaseException as a catch-all from the plugins
@@ -354,7 +325,7 @@ class App(object):
                       "loaded".format(len(self.plugin_mgr.plugins)))
 
         for plugin_name in self.plugin_mgr.plugins:
-            mod = self.plugin_mgr.plugins[plugin_name]
+            mod = self.plugin_mgr.plugins[plugin_name].module
             self.log.info("- {}".format(mod.__file__[:-1]))     # *.pyc -> *.py
 
         self.init_UI()
@@ -414,10 +385,10 @@ class App(object):
 
         # if we had a site_yml plugin run it again in delete mode
         # to remove the additional include_vars tasks
-        if 'site_yml' in self.plugin_mgr.plugins:
+        if self.plugin_mgr.plugins['site_yml'].executed:
             self.log.info("running site_yml again to remove "
                           "the include_vars task for all.yml")
-            mod = self.plugin_mgr.plugins['site_yml']
+            mod = self.plugin_mgr.plugins['site_yml'].module
             mod.plugin_main(config=self.cfg, mode='delete')
 
         # if we have a _bak version of the ansible.cfg, restore it to it's
@@ -444,7 +415,8 @@ def setup_logging():
 
 def parse_cli_options():
 
-    modes = ['dev', 'prod']             # 1st entry is the default!
+    modes = ['dev', 'prod']                     # 1st entry is the default!
+    copilot_version = ceph_ansible_copilot.__version__
 
     parser = argparse.ArgumentParser(description="ceph-ansible copilot")
 
@@ -466,10 +438,11 @@ def parse_cli_options():
 
     parser.add_argument('--version', action='version',
                         version='{} {}'.format(parser.prog,
-                                               ceph_ansible_copilot.__version__))
+                                               copilot_version))
 
     args = parser.parse_args()
     return args
+
 
 if __name__ == "__main__":
 

@@ -10,19 +10,20 @@ class UI_Commit(UIBaseClass):
         "Prior to updating files, the old version is saved with a "
         "timestamp suffix"
     )
-    seq_no = 6
+    seq_no = 7
 
     def __init__(self, parent):
 
         app = parent
 
         self.text = (
-            "Commit\n\nThe commit phase will update configuration files "
+            "{}\n\nThe commit phase will update configuration files "
             "to prepare the installer. {} plugins have been found that will "
             "be used to update the installer's configuration files. Once the "
             "commit is done, you may continue to the deploy phase, or exit "
             "'co-pilot' and run the deployment process "
-            "manually".format(len(app.plugin_mgr.plugins)))
+            "manually".format(self.title,
+                              len(app.plugin_mgr.plugins)))
 
         self.next_btn = ui_button(label="Commit", callback=self.validate)
 

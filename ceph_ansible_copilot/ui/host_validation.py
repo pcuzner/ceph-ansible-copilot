@@ -9,7 +9,7 @@ class UI_Host_Validation(UIBaseClass):
     title = "Host Validation"
     hint = ("Validation can show issues that would prevent a successful "
             "deployment")
-    seq_no = 4
+    seq_no = 5
 
     pb_tasks = [dict(name="setup module",
                      action=dict(module="setup", args=""))
@@ -18,10 +18,9 @@ class UI_Host_Validation(UIBaseClass):
     def __init__(self, parent):
 
         self.text = (
-            "Host Validation\n\nThe hosts have already been checked for "
-            "DNS and passwordless SSH. The next step is to 'probe' the hosts "
-            "to validate that their configuration matches the intended Ceph "
-            "role."
+            "{}\n\nThe hosts are accessible to the installer. "
+            "The next step is to 'probe' the hosts to validate their "
+            "configuration is usable.".format(self.title)
         )
 
         self.probe_btn = ui_button(label='Probe', align='center',
@@ -44,7 +43,7 @@ class UI_Host_Validation(UIBaseClass):
         hosts = app.hosts
 
         host_list = ','.join(sorted(hosts.keys()))
-        app.show_message("Probing hosts...") #, immediate=True)
+        app.show_message("Probing hosts...")
 
         self.clear_table()
 
@@ -91,9 +90,6 @@ class UI_Host_Validation(UIBaseClass):
         # rows updating the copilot msg widget
         app.show_message(msg, immediate=True)
 
-    # def validate(self):
-    #     return
-
     def clear_table(self):
         app = self.parent
 
@@ -117,8 +113,6 @@ class UI_Host_Validation(UIBaseClass):
 
         self.table_body = urwid.SimpleListWalker(table_rows)
 
-        # urwid.connect_signal(self.table_body, "modified", self.show_row_state)
-
         return
 
     def next_page(self, button):
@@ -141,16 +135,14 @@ class UI_Host_Validation(UIBaseClass):
 
             osd_hosts = [h for h in hosts
                          if hosts[h].selected and 'osd' in hosts[h].roles
-                         and hosts[h].state.lower() == 'ready']
+                         and hosts[h].state.lower().startswith('ok')]
 
             journals_available = all(hosts[h].ssd_count > 0
                                      for h in osd_hosts)
             if not journals_available:
                 cfg.osd_scenario = 'collocated'
-                # self.data['osd_scenario'] = 'collocated'
             else:
                 cfg.osd_scenario = 'non-collocated'
-                # self.data['osd_scenario'] = 'non-collocated'
 
             app.next_page()
         else:
@@ -190,11 +182,9 @@ class UI_Host_Validation(UIBaseClass):
                    urwid.Pile([
                                urwid.Padding(urwid.Text(self.text),
                                              left=2, right=2),
-                               # urwid.Divider(),
                                self.probe_btn,
                                urwid.Divider(),
                                results,
-                               # urwid.Divider(),
                                self.next_btn]),
                    valign='top', top=1),
                  'active_step')
