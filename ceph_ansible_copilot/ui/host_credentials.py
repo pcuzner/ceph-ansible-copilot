@@ -19,7 +19,7 @@ class UI_Credentials(UIBaseClass):
             "that have an AUTHFAIL/NOPASSWD status, enter the root password "
             "and check again.".format(self.title))
 
-        self.check_btn = ui_button(label='Check', align='right',
+        self.check_btn = ui_button(label='  Check  ', align='right',
                                    callback=self.check_access)
 
         self.enable_password = urwid.CheckBox("Common Password",
@@ -95,6 +95,8 @@ class UI_Credentials(UIBaseClass):
         if btn_label == 'Next':
             self.next_page()
 
+        button.set_label("Checking")
+
         app = self.parent
         hosts = app.hosts
 
@@ -115,6 +117,8 @@ class UI_Credentials(UIBaseClass):
 
         if len(self.pending_table_body) == 0:
             button.set_label('Next')
+        else:
+            button.set_label('Check')
 
     def next_page(self):
         # disconnect the signal handler setup by __init__
