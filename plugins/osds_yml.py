@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-from ceph_ansible_copilot.utils import valid_yaml
+from ceph_ansible_copilot.utils import valid_yaml, get_common_devs
 
 description = "Create a osds.yml file to control osd creation"
 yml_file = '/usr/share/ceph-ansible/group_vars/osds.yml'
@@ -29,7 +29,7 @@ def create_yml(config):
                                    getattr(config, config_key)))
     out.append('')
 
-    devices = get_devs(config.hosts)
+    devices = get_common_devs(config.hosts)
 
     if devices:
         out.append('# devices common to all osd hosts')
@@ -38,7 +38,7 @@ def create_yml(config):
             out.append("  - /dev/{}".format(dev))
 
         if config.osd_scenario == 'non-collocated':
-            journals = get_devs(config.hosts, dev_type='journal')
+            journals = get_common_devs(config.hosts, dev_type='journal')
 
             # Assumption is the main app validates the ssd count is correct
             if journals:
@@ -64,30 +64,21 @@ def create_yml(config):
     return out
 
 
-def get_devs(host_data, dev_type='hdd'):
-    dev_lists = []
-    for h in host_data:
-        if dev_type == 'hdd':
-            dev_lists.append(set(host_data[h].hdd_list))
-        else:
-            dev_lists.append(set(host_data[h].ssd_list))
-
-    return set.intersection(*dev_lists)
-
-
 def test():
     hosts = {}
+
     class Host(object):
         pass
-    hosts['a'] = Host
-    hosts['b'] = Host
-    hosts['c'] = Host
+
+    hosts['a'] = Host()
+    hosts['b'] = Host()
+    hosts['c'] = Host()
 
     hosts['a'].hdd_list = set(['a', 'b', 'c'])
     hosts['b'].hdd_list = set(['a', 'b', 'c'])
     hosts['c'].hdd_list = set(['a', 'b', 'c'])
 
-    print get_devs(hosts)
+    print(get_common_devs(hosts))
 
 
 if __name__ == '__main__':

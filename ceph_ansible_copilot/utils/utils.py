@@ -224,14 +224,19 @@ def get_used_roles(config):
     return list(used_roles)
 
 
-def get_pgnum(config):
+def get_pgnum(config, mode="basic"):
     """
     simplistic pgnum calculation based on
     http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+    :param mode: str of basic or advanced. basic is used for the initial rgw
+                 pool creation, advanced uses the disk counts to give a rule
+                 of thumb size
     :param config: (config object) contains a hosts dict, with all gathered
                    specs
     :return: (int) pg number to use for a pool
     """
+    if mode == "basic":
+        return 64
 
     hdd_total = 0
     ssd_total = 0
@@ -250,3 +255,25 @@ def get_pgnum(config):
         return 512
     else:
         return 1024
+
+
+def get_common_devs(host_data, dev_type='hdd'):
+    """
+    Look at the hosts and find a common set of drives of a given type (hdd/ssd)
+    :param host_data: dict of Host objects populated by an ansible 'setup' call
+    :param dev_type: str describing the types of disks were looking for
+    :return : a set of device name common to all hosts
+    """
+
+    dev_lists = []
+    for hostname in host_data:
+        # skip the host if it doesn't have have the OSD role assigned
+        if 'osd' not in host_data[hostname].roles:
+            continue
+
+        if dev_type == 'hdd':
+            dev_lists.append(set(host_data[hostname].hdd_list))
+        else:
+            dev_lists.append(set(host_data[hostname].ssd_list))
+
+    return set.intersection(*dev_lists)
