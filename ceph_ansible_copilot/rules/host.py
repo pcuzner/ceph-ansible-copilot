@@ -42,7 +42,8 @@ class HostState(BaseCheck):
                              for nic in self.host.nics])
 
             # 12 disks per 10g link - throughput optimised check
-            multiplier = int(math.ceil(self.disk_count / float(self.disks_per_10g)))
+            multiplier = int(math.ceil(self.disk_count /
+                                       float(self.disks_per_10g)))
             if bandwidth < (multiplier * 10):
                 self._add_problem('warning', 'Network bandwidth low')
 
@@ -51,4 +52,4 @@ class HostState(BaseCheck):
         if 'osd' in self.host.roles:
 
             if self.disk_count == 0:
-                self._add_problem('error', 'OSD without disks')
+                self._add_problem('error', 'no disks')
