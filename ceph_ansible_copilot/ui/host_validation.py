@@ -72,6 +72,9 @@ class UI_Host_Validation(UIBaseClass):
                                        probe_callback.stats['task_state']
                                                            ['unreachable']))
 
+        for host in hosts:
+            hosts[host].probed = True
+
         for host in probe_callback.stats['successes']:
             # populate with ansible facts
             hosts[host].seed(probe_callback.stats['successes'][host])
@@ -81,6 +84,10 @@ class UI_Host_Validation(UIBaseClass):
         # self.validate()
         self.probed = True
         self.populate_table()
+
+        # TODO
+        # Add a call to ClusterState validation as a final check - this would
+        # catch inconsistent disk names across OSD nodes for example
 
         app.refresh_ui()
         app.loop.widget = self.parent.top
@@ -188,4 +195,3 @@ class UI_Host_Validation(UIBaseClass):
                                self.next_btn]),
                    valign='top', top=1),
                  'active_step')
-
