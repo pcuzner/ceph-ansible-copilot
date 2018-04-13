@@ -65,6 +65,7 @@ class Config(Settings):
         self.defaults.osd_objectstore = 'filestore'
         self.defaults.sw_src = 'RH CDN'
         self.defaults.dmcrypt = 'standard'
+        self.defaults.deployment_type = 'bare-metal'
         self.defaults.playbook = '/usr/share/ceph-ansible/site.yml'
 
         self.hosts = None
