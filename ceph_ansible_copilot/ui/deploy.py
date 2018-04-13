@@ -154,6 +154,8 @@ class UI_Deploy(UIBaseClass):
 
         self.failed_hosts = stats['failures'].keys()
         if self.failed_hosts:
+            app.log.error("failed hosts ({}): ".format(len(self.failed_hosts),
+                                                       ','.join(self.failed_hosts)))
 
             if self.failure_title_w.get_text()[0] == '':
 
@@ -164,6 +166,10 @@ class UI_Deploy(UIBaseClass):
                 # FIXME should add to the table, not recreate each time!
                 host_errors = [self._get_err(e_dict)
                                for e_dict in stats['failures'][host]]
+
+                app.log.error("{}: {}".format(host, host_errors))
+                app.log.debug("{}: {}".format(host, stats['failures'][host]))
+
                 host_errors.insert(0, "{}\n".format(stats['task_name']))
                 host_text = ','.join(host_errors)
                 error_rows.append(DataRow(host, host_text))
@@ -177,8 +183,10 @@ class UI_Deploy(UIBaseClass):
 
     def _get_err(self, error_dict):
 
+        errors = list()
+
         if 'results' in error_dict:
-            errors = list()
+
             for err in error_dict.get('results'):
                 if not err.get('failed'):
                     continue
@@ -190,15 +198,16 @@ class UI_Deploy(UIBaseClass):
                 if 'msg' in err:
                     errors.append(err.get('msg'))
 
-            return ' '.join(errors)
-        elif 'reason' in error_dict:
-            return error_dict.get('reason')
-        elif 'msg' in error_dict:
-            return error_dict.get('msg')
-        elif 'stdout' in error_dict:
-            return error_dict.get('stdout')
+        if 'reason' in error_dict:
+            errors.append(error_dict.get('reason'))
+        if 'msg' in error_dict:
+            errors.append(error_dict.get('msg'))
+        if 'stdout' in error_dict:
+            errors.append(error_dict.get('stdout'))
         else:
-            return error_dict.get('stderr', '')
+            errors.append(error_dict.get('stderr', ''))
+
+        return ' '.join(errors)
 
     @property
     def render_page(self):
