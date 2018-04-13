@@ -13,15 +13,17 @@ class UI_Environment(UIBaseClass):
         software_src_list = ['RH CDN', 'Distro', 'Community']
         osd_types = ['filestore', 'bluestore']
         dmcrypt_settings = ['standard', 'encrypted']
+        deployment_options = ['bare-metal', 'container']
 
         cfg = parent.cfg
 
         self.sw_source_group = []
         self.osd_type = []
         self.dmcrypt_group = []
+        self.deployment_group = []
 
         self.text = (
-            "Environment\n\nDefine the types of environment settings that "
+            "Environment\n\nDefine the environment settings that "
             "will determine the way the cluster is installed and configured."
         )
 
@@ -29,26 +31,34 @@ class UI_Environment(UIBaseClass):
                                          valid_chars=self.alphanum)
         self.deployment_user.edit_text = 'root'
 
+        deployment_buttons = [urwid.RadioButton(self.deployment_group, txt,
+                                                state=False)
+                              for txt in deployment_options]
+        deployment_buttons[deployment_options.index(cfg.defaults.deployment_type)].state = True
+        self.deployment_types = urwid.GridFlow(deployment_buttons,
+                                               14, 4, 0, align='left')
+
         software_buttons = [urwid.RadioButton(self.sw_source_group, txt,
                                               state=False)
                             for txt in software_src_list]
         software_buttons[software_src_list.index(cfg.defaults.sw_src)].state = True
         self.software_sources = urwid.GridFlow(software_buttons,
-                                14, 4, 0, align='left')
+                                               14, 4, 0, align='left')
 
         osd_buttons = [urwid.RadioButton(self.osd_type, txt,
                                          state=False)
                        for txt in osd_types]
-        osd_buttons[osd_types.index(cfg.defaults.osd_objectstore)].state=True
+        osd_buttons[osd_types.index(cfg.defaults.osd_objectstore)].state = True
         self.osd_options = urwid.GridFlow(osd_buttons,
                                           14, 4, 0, align='left')
 
         dmcrypt_buttons = [urwid.RadioButton(self.dmcrypt_group, txt,
-                                         state=False)
-                       for txt in dmcrypt_settings]
+                                             state=False)
+                           for txt in dmcrypt_settings]
+
         dmcrypt_buttons[dmcrypt_settings.index(cfg.defaults.dmcrypt)].state = True
         self.dmcrypt_options = urwid.GridFlow(dmcrypt_buttons,
-                                          14, 4, 0, align='left')
+                                              14, 4, 0, align='left')
         self.next_btn = ui_button(callback=self.validate)
 
         UIBaseClass.__init__(self, parent)
@@ -71,6 +81,8 @@ class UI_Environment(UIBaseClass):
 
         cfg.deployment_user = ansible_user
 
+        cfg.deployment_type = get_selected_button(self.deployment_group)
+
         cfg.osd_objectstore = get_selected_button(self.osd_type)
 
         cfg.sw_source = get_selected_button(self.sw_source_group)
@@ -88,6 +100,15 @@ class UI_Environment(UIBaseClass):
         names = urwid.Padding(
             urwid.Pile([
                 urwid.AttrMap(self.deployment_user, 'editbox')]),
+            left=2,
+            right=2
+        )
+
+        deployment = urwid.Padding(
+            urwid.Pile([
+                urwid.Text("Deployment Type"),
+                self.deployment_types,
+            ]),
             left=2,
             right=2
         )
@@ -118,9 +139,10 @@ class UI_Environment(UIBaseClass):
             urwid.Divider(),
             names,
             urwid.Divider(),
+            deployment,
+            urwid.Divider(),
             software,
             urwid.Divider(),
             osd_setting,
-            urwid.Divider(),
             self.next_btn]), valign='top', top=1),
             'active_step')
