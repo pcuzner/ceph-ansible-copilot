@@ -40,6 +40,7 @@ class Host(object):
         self.disk_capacity = 0
         self.subnets = []              # ipv4 network list
         self.nics = {}                  # NIC details
+        self.probed = False
 
     @property
     def role_types(self):
@@ -60,13 +61,17 @@ class Host(object):
         nic_drivers = {
             "ixgbe": 10,
             "i40e": 40,
-            "cxgb": 10
+            "cxgb": 10,
+            "mlx4_core": 10
         }
 
         self._facts = ansible_facts['ansible_facts']
 
+        # FIXME: Should this use ansible_processort_vcpus?
         self.available_cores = self._facts.get('ansible_processor_count') * \
-            self._facts.get('ansible_processor_threads_per_core')
+            self._facts.get('ansible_processor_threads_per_core') * \
+            self._facts.get('ansible_processor_cores')
+
         self.available_mb = self._facts['ansible_memory_mb']['real']['total']
 
         # extract the stats that the UI will show
@@ -75,8 +80,8 @@ class Host(object):
 
         hdd = self._free_disks(rotational=1)
         ssd = self._free_disks(rotational=0)
-        self.hdd_list = hdd.keys()
-        self.ssd_list = ssd.keys()
+        self.hdd_list = sorted(hdd.keys())
+        self.ssd_list = sorted(ssd.keys())
         self.hdd_count = len(hdd.keys())
         self.ssd_count = len(ssd.keys())
         all_disks = merge_dicts(hdd, ssd)
@@ -123,6 +128,11 @@ class Host(object):
         free = {}
         for disk_id in self._facts['ansible_devices']:
             disk = self._facts['ansible_devices'][disk_id]
+
+            # skip disks that don't have a parent (e.g. dm disks)
+            if not disk['host']:
+                continue
+
             if int(disk['rotational']) == rotational:
                 if not disk['partitions']:
                     free[disk_id] = disk
