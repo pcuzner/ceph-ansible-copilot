@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from ceph_ansible_copilot.utils import get_common_devs
 from .base import BaseCheck
 
 
@@ -10,8 +11,8 @@ class ClusterState(BaseCheck):
         Check the host membership within a cluster do not violate best
         practice rules. The checks are all _check prefixed and invoked by the
         parent classes 'run' method
-        :param host_list: (dict) dict of Host objects, indexed by hostname
-        :param mode: (str) either dev or prod
+        :param hosts: dict of Host objects, indexed by hostname
+        :param mode: str, either dev or prod
         """
 
         self.hosts = hosts
@@ -88,6 +89,19 @@ class ClusterState(BaseCheck):
                 self._add_problem('error', 'too few OSD hosts'
                                            '({})'.format(osd_host_count))
 
+    def _check_common_osds(self):
+        # this check is only valid once the hosts have been probed
+        if not all(self.hosts[hostname].probed is True
+                   for hostname in self.hosts):
+            return
+
+        common_hdds = get_common_devs(self.hosts, dev_type='hdd')
+        common_ssds = get_common_devs(self.hosts, dev_type='ssd')
+        if not common_hdds:
+            self._add_problem('error', "hdd's not consistent across nodes")
+        if not common_ssds:
+            self._add_problem('error', "ssd's not consistent across nodes")
+
     def _check_collocation(self):
         if self.mode == 'prod':
 
@@ -113,4 +127,3 @@ class ClusterState(BaseCheck):
                                   "Selected hosts have errors. Resolve, "
                                   "then click 'Next'")
                 break
-
