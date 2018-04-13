@@ -90,6 +90,10 @@ def create_yml(config):
     out.append("cephx: true")
     out.append(' ')
 
+    if config.deployment_type == 'container':
+        out.append('containerized_deployment: true')
+        out.append(' ')
+
     rgws = get_hosts(config.hosts, 'rgw')
     if rgws:
         dns_tld = '.'.join(os.environ['HOSTNAME'].split('.')[1:])
