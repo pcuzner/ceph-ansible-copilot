@@ -48,8 +48,8 @@ class Settings(object):
             if isinstance(value, Settings):
                 s += '{}:\n'.format(attr)
                 sub_items = repr(value).split("\n")
-                for i in sub_items[:-1]:
-                    s += '- {}\n'.format(i)
+                for i in sub_items[1:-1]:
+                    s += '  - {}\n'.format(i)
             else:
                 s += '{}: {}\n'.format(attr, value)
         return s
