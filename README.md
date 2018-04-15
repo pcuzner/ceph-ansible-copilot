@@ -14,6 +14,11 @@ Here's an example run that illustrates the workflow for a small cluster of 3 nod
 A more detailed demo can be found on my [blog](http://opensource-storage.blogspot.co.nz/2017/12/want-to-install-ceph-but-afraid-of.html) and there are some screenshots showing the welcome page across the major distros in the screenshots folder.    
 
 ## Features  
+### 0.9.6  
+- Added support for container based deployments  
+- minor UI tweaks (Credentials validation page)  
+- callback options that may be present in ansible.cfg are temporarily removed to prevent conflicts  
+
 ### 0.9.5  
 - Added ssh credentials workflow  
   - hosts selected are checked for passwordless ssh access (root only at the moment)  
