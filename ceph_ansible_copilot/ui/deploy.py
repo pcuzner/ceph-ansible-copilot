@@ -117,6 +117,10 @@ class UI_Deploy(UIBaseClass):
 
         deploy_pb = StaticPlaybook(host_list=host_list, callback=results)
 
+        if not app.playbook:
+            # set the playbook based on the deployment type
+            app.playbook = cfg.defaults.playbook[cfg.deployment_type]
+
         deploy_pb.setup(pb_file=app.playbook)
         app.log.info("Playbook starting, using {}".format(app.playbook))
         app.show_message("Ceph deployment started "

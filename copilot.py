@@ -66,7 +66,11 @@ class Config(Settings):
         self.defaults.sw_src = 'RH CDN'
         self.defaults.dmcrypt = 'standard'
         self.defaults.deployment_type = 'bare-metal'
-        self.defaults.playbook = '/usr/share/ceph-ansible/site.yml'
+
+        self.defaults.playbook = {
+            "bare-metal": "/usr/share/ceph-ansible/site.yml",
+            "container": "/usr/share/ceph-ansible/site_docker.yml"
+            }
 
         self.hosts = None
 
@@ -135,7 +139,7 @@ class App(object):
         if opts.playbook:
             self.playbook = opts.playbook
         else:
-            self.playbook = self.cfg.defaults.playbook
+            self.playbook = None
 
         self.ansible_cfg = os.path.join(CEPH_ANSIBLE_ROOT, 'ansible.cfg')
         self.ansible_cfg_bkup = '{}_bak'.format(self.ansible_cfg)
