@@ -182,9 +182,15 @@ class App(object):
 
         self.log.info("End of options")
 
+        site_files = {
+            "site_yml": "bare-metal",
+            "site_docker_yml": "container"
+        }
+
         plugin_status = {
             "successful": 0,
-            "failed": 0
+            "failed": 0,
+            "skipped": 0
         }
 
         num_plugins = len(self.plugin_mgr.plugins)
@@ -196,6 +202,16 @@ class App(object):
         plugins = self.plugin_mgr.plugins
 
         for plugin_name in srtd_names:
+
+            # check to see if this plugin
+            if plugin_name in site_files:
+                if site_files.get(plugin_name) is not self.cfg.deployment_type:
+                    self.log.info("Skipping {}, not needed for deployment "
+                                  "type {}".format(plugin_name,
+                                                   self.cfg.deployment_type))
+                    plugin_status['skipped'] += 1
+                    continue
+
             mod = plugins[plugin_name].module
             yml_file = mod.yml_file
 
@@ -226,14 +242,11 @@ class App(object):
                 elif not plugin_data:
                     self.log.info("backup and update handled by plugin")
 
-        skipped = num_plugins - (plugin_status['successful'] +
-                                 plugin_status['failed'])
-
         self.log.info("{} plugin(s) sucessful, "
                       "{} failed, "
                       "{} skipped".format(plugin_status['successful'],
                                           plugin_status['failed'],
-                                          skipped))
+                                          plugin_status['skipped']))
 
         return plugin_status
 
