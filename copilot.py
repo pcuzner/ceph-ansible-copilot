@@ -340,7 +340,8 @@ class App(object):
 
         for plugin_name in self.plugin_mgr.plugins:
             mod = self.plugin_mgr.plugins[plugin_name].module
-            self.log.info("- {}".format(mod.__file__[:-1]))     # *.pyc -> *.py
+            self.log.info("- {} -> {}".format(mod.__name__,
+                                              mod.__file__[:-1]))  # show .py
 
         self.init_UI()
 
