@@ -147,8 +147,13 @@ def setup_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
     ansible_cfg = os.path.join(ceph_ansible_dir, 'ansible.cfg')
     ansible_cfg_bkup = '{}_bak'.format(ansible_cfg)
 
+    # need to drop any specific callbacks to ensure they don't interfere with
+    # the callbacks that copilot users or the display of the UI. Setting a
+    # variable to None, indicates that the option should be removed
     cfg_changes = [
-        ('defaults', 'deprecation_warnings', 'False')
+        ('defaults', 'deprecation_warnings', 'False'),
+        ('defaults', 'callback_plugin', None),
+        ('defaults', 'callback_whitelist', None)
     ]
 
     if not os.path.exists(ansible_cfg):
@@ -162,12 +167,20 @@ def setup_ansible_cfg(ceph_ansible_dir='/usr/share/ceph-ansible'):
         section, variable, required_value = setting
         try:
             current_value = cfg_file.get(section, variable)
+
+        except ConfigParser.NoOptionError:
+            if required_value:
+                cfg_file.set(section, variable, required_value)
+                changes_made = True
+        else:
+            if not required_value:
+                cfg_file.remove_option(section, variable)
+                changes_made = True
+                continue
+
             if current_value != required_value:
                 cfg_file.set(section, variable, required_value)
                 changes_made = True
-        except ConfigParser.NoOptionError:
-            cfg_file.set(section, variable, required_value)
-            changes_made = True
 
     if changes_made:
         shutil.copy2(ansible_cfg,
