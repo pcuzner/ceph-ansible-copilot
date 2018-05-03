@@ -146,7 +146,7 @@ class SSHsession(object):
     def _ssh_connect(self, client, use_password=False):
 
         client.set_missing_host_key_policy(AutoAddPolicy())
-        
+
         known_hosts_file = os.path.expanduser('~/.ssh/known_hosts')
         if not os.path.exists(known_hosts_file):
             open(known_hosts_file, "a")
