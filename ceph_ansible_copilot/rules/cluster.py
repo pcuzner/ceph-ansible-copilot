@@ -89,18 +89,23 @@ class ClusterState(BaseCheck):
                 self._add_problem('error', 'too few OSD hosts'
                                            '({})'.format(osd_host_count))
 
-    def _check_common_osds(self):
+    def _check_osd_devices(self):
         # this check is only valid once the hosts have been probed
         if not all(self.hosts[hostname].probed is True
                    for hostname in self.hosts):
             return
 
-        common_hdds = get_common_devs(self.hosts, dev_type='hdd')
-        common_ssds = get_common_devs(self.hosts, dev_type='ssd')
-        if not common_hdds:
-            self._add_problem('error', "hdd's not consistent across nodes")
-        if not common_ssds:
-            self._add_problem('error', "ssd's not consistent across nodes")
+        # if we have hdd's check the names are consistent across hosts
+        if sum([self.hosts[h].hdd_count for h in self.hosts]) > 0:
+            common_hdds = get_common_devs(self.hosts, dev_type='hdd')
+            if not common_hdds:
+                self._add_problem('error', "hdd's not consistent across nodes")
+
+        # same check for ssd devices
+        if sum([self.hosts[h].ssd_count for h in self.hosts]) > 0:
+            common_ssds = get_common_devs(self.hosts, dev_type='ssd')
+            if not common_ssds:
+                self._add_problem('error', "ssd's not consistent across nodes")
 
     def _check_collocation(self):
         if self.mode == 'prod':
