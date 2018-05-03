@@ -129,8 +129,17 @@ class Host(object):
         for disk_id in self._facts['ansible_devices']:
             disk = self._facts['ansible_devices'][disk_id]
 
-            # skip disks that don't have a parent (e.g. dm disks)
-            if not disk['host']:
+            # skip device-mapper devices
+            if disk_id.startswith('dm-'):
+                continue
+            # skip disks that have partitions already
+            if disk['partitions']:
+                continue
+            # skip lvm owned devices
+            if disk['holders']:
+                continue
+            # skip child devices of software RAID
+            if disk['links']['masters']:
                 continue
 
             if int(disk['rotational']) == rotational:
