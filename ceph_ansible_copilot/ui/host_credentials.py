@@ -103,6 +103,7 @@ class UI_Credentials(UIBaseClass):
         self._update_hosts(hosts)
         callback = self.refresh
 
+        app.log.debug("Starting ssh threads {}".format(len(hosts.keys())))
         threads = []
         for hostname in sorted(hosts.keys()):
             this_host = hosts[hostname]
@@ -110,10 +111,16 @@ class UI_Credentials(UIBaseClass):
                 _t = threading.Thread(target=this_host.ssh.setup,
                                       args=(callback,))
                 _t.start()
+                app.log.debug("Started ssh thread for {}".format(hostname))
                 threads.append(_t)
 
         for _t in threads:
             _t.join()
+        app.log.debug("All ssh threads complete")
+        for hostname in sorted(hosts.keys()):
+            this_host = hosts[hostname]
+            app.log.debug("SSH status for {} is "
+                          "{}".format(hostname, this_host.ssh.status_code))
 
         if len(self.pending_table_body) == 0:
             button.set_label('Next')
