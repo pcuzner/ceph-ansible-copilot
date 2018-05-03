@@ -69,7 +69,7 @@ class Config(Settings):
 
         self.defaults.playbook = {
             "bare-metal": "/usr/share/ceph-ansible/site.yml",
-            "container": "/usr/share/ceph-ansible/site_docker.yml"
+            "container": "/usr/share/ceph-ansible/site-docker.yml"
             }
 
         self.hosts = None

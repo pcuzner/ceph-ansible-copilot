@@ -4,7 +4,7 @@ import os
 import shutil
 
 description = "use the existing site_docker.yml, or create one from the sample"
-yml_file = '/usr/share/ceph-ansible/group_vars/site_docker.yml'
+yml_file = '/usr/share/ceph-ansible/site-docker.yml'
 
 
 def plugin_main(config=None):
@@ -18,7 +18,7 @@ def plugin_main(config=None):
         if os.path.exists(sample):
             shutil.copy2(sample, yml_file)
         else:
-            raise EnvironmentError("sample file for site_docker.yml not found")
+            raise EnvironmentError("sample file for site-docker.yml not found")
 
     return None
 
