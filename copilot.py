@@ -186,10 +186,10 @@ class App(object):
 
         self.log.info("End of options")
 
-        site_files = {
-            "site_yml": "bare-metal",
-            "site_docker_yml": "container"
-        }
+        # site_files = {
+        #     "site_yml": "bare-metal",
+        #     "site_docker_yml": "container"
+        # }
 
         plugin_status = {
             "successful": 0,
@@ -206,15 +206,6 @@ class App(object):
         plugins = self.plugin_mgr.plugins
 
         for plugin_name in srtd_names:
-
-            # check to see if this plugin
-            if plugin_name in site_files:
-                if site_files.get(plugin_name) is not self.cfg.deployment_type:
-                    self.log.info("Skipping {}, not needed for deployment "
-                                  "type {}".format(plugin_name,
-                                                   self.cfg.deployment_type))
-                    plugin_status['skipped'] += 1
-                    continue
 
             mod = plugins[plugin_name].module
             yml_file = mod.yml_file
