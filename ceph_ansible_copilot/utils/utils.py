@@ -7,8 +7,8 @@ import socket
 import threading
 import Queue
 import yaml
-from yaml.scanner import ScannerError
 
+from yaml.scanner import ScannerError
 
 TCP_TIMEOUT = 2
 
