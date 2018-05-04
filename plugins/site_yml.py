@@ -2,12 +2,18 @@
 
 import os
 import yaml
+import logging
+
 from collections import OrderedDict
 
 from ceph_ansible_copilot.utils import get_used_roles
 
-description = "use the existing site.yml, or create one from the sample"
+
+description = ("use the existing site.yml or site-docker.yml, or create one "
+               "from the sample")
 yml_file = '/usr/share/ceph-ansible/site.yml'
+
+logger = logging.getLogger('copilot')
 
 # The sample file includes a host entry for each role, but if the role isn't
 # supported by copilot, the playbook generates warning messages that disrupt
@@ -46,8 +52,14 @@ def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
 
 def plugin_main(config=None, mode='add'):
 
+
     if not config:
         raise ValueError("Config object not received from caller")
+
+    # pick yml file based on the deployment type, bare-metal or container
+    yml_file = config.defaults.playbook[config.deployment_type]
+    logger.debug("will use site file: {}".format(yml_file))
+    logger.debug("update mode is {}".format(mode))
 
     if not os.path.exists(yml_file):
         # create a copy from the sample file
@@ -60,13 +72,14 @@ def plugin_main(config=None, mode='add'):
                 used_roles = get_used_roles(config)
 
             yml_data = load_yaml(sample)
-
-            updated_yaml = process_yaml(yml_data, used_roles)
-            updated_yaml = manage_all_yml(updated_yaml, mode=mode)
+            logger.debug("Cluster is using the following roles - "
+                         "{}".format(','.join(used_roles)))
+            # updated_yaml = process_yaml(yml_data, used_roles)
+            updated_yaml = manage_all_yml(yml_data, mode=mode)
 
             write_yaml(yml_file, updated_yaml)
         else:
-            raise EnvironmentError("sample file for site.yml not found")
+            raise EnvironmentError("sample 'site' file not found")
     else:
         # site.yml already exists, so we just make sure the include for
         # all.yml is not there
@@ -81,7 +94,7 @@ def plugin_main(config=None, mode='add'):
 def manage_all_yml(yaml_data, mode):
 
     all_vars_file = '/usr/share/ceph-ansible/group_vars/all.yml'
-    pre_req_tasks = yaml_data[0]['tasks']
+    pre_req_tasks = yaml_data[0].get('tasks', yaml_data[0].get('pre_tasks'))
 
     if mode == 'add':
         all_vars = OrderedDict([('name', 'Add all.yml'),
@@ -102,6 +115,7 @@ def manage_all_yml(yaml_data, mode):
 
 
 def load_yaml(yml_filename):
+    logger.debug("Loading yaml from {}".format(yml_filename))
     with open(yml_filename, "r") as stream:
         yaml_data = ordered_load(stream, yaml.SafeLoader)
 
@@ -111,8 +125,7 @@ def load_yaml(yml_filename):
 def process_yaml(yaml_data, used_roles):
     """
     Read the site.yml.sample deleting any role that is not used by copilot
-    (i.e. doesn't match an item in the used_roles parameter), and explicitly
-    include the all.yml global_vars file
+    (i.e. doesn't match an item in the used_roles parameter)
     :param yaml_data: (list) load yamldata
     :param used_roles: (list) list of role names (mon, rgw, osd)
     :return: edited yaml data to write to the site.yml file
@@ -144,7 +157,7 @@ def process_yaml(yaml_data, used_roles):
 
 
 def write_yaml(yaml_file, yaml_data):
-
+    logger.debug("Writing out playbook to {}".format(yaml_file))
     with open(yaml_file, "w", 0) as out:
         ordered_dump(yaml_data,
                      Dumper=yaml.SafeDumper,
@@ -155,4 +168,3 @@ def write_yaml(yaml_file, yaml_data):
 
 if __name__ == '__main__':
     plugin_main(config=['mon', 'osd', 'rgw', 'mds'])
-

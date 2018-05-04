@@ -51,8 +51,7 @@ setup(
                  ['plugins/all_yml.py', 'plugins/ansible_hosts.py',
                   'plugins/mdss_yml.py', 'plugins/mgrs_yml.py',
                   'plugins/mons_yml.py', 'plugins/osds_yml.py',
-                  'plugins/rgws_yml.py', 'plugins/site_yml.py',
-                  'plugins/site_docker_yml.py'])],
+                  'plugins/rgws_yml.py', 'plugins/site_yml.py'])],
     cmdclass={
         "install_scripts": StripExtension
     }
